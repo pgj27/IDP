@@ -1,12 +1,10 @@
-//wheel encoder
+//WHEEL ENCODER
+
 //take inputs from opto switch to determine how far the wheels have turned
-//need to first test that the output of the opto switch is always correct when wheel is in motion
-//Once this is working we can work out how far the wheel has moved by its dimensions given how many 
-//times the opto switch output has changed state (between 2 changes in state gives x cm moved)
 
 //KEEP IN MIND
 //The maximum frequency that is possible depends on the other jobs the controller has to do, too.
-//Maximum number of pulses (need to consider that the counter can only count up to a certain number(distance)
+//Maximum number of pulses (need to consider that the counter can only count up to a certain number(distance))
 //Distance between slits should be 2 times distance of slit width of opto switch
 
 #include <Wire.h>
@@ -23,26 +21,23 @@ Adafruit_DCMotor *myMotor = AFMS.getMotor(1);
 Adafruit_DCMotor *myOtherMotor = AFMS.getMotor(2);
 
 
-float encoder(int counter) { 
-   //Serial.print("Counter before: ");
-   //Serial.println(counter);
+int checkOptoStatus(int counter) { 
+  int cutOff = 100; //This may need to be a global variable if we need to calibrate using a function
+                    //Otherwise we don't need this value if we are using digital
 
   //call optoswitch function for HIGH or LOW value
-  //int optoReading = digitalRead(8);
+  //int optoReading = digitalRead(8); //if using digital
   int optoReading = analogRead(1);
 
-  if(optoReading>100){
+  if(optoReading>cutOff){ //only need this if using analog
     optoReading = 0;
   }
-  else if(optoReading<=100){
+  else if(optoReading<=cutOff){
     optoReading = 1;
   }
-   //Serial.print("Optoreading in second function: ");
-   //Serial.println(optoReading);
 
   //if counter is same as output then do nothing
-  //if counter is different value to output then change value of counter and incrament distance by conversion
-  //return distance 8  if(counter != optoReading){
+  //if counter is different value to output then change value of counter
     if(optoReading==1){
       counter = 1;
     }
@@ -50,31 +45,30 @@ float encoder(int counter) {
     else if(optoReading==0){
       counter = 0;
     }
-  
-  //Serial.print("Counter after: ");
-  //Serial.println(counter);
- // delay(10); //SEE IF DELAY MAKES DIFFERENCE
+  //delay(10)
   return counter;     
 }
 
 float distanceCalculator(float distance, int counter){
-  
-  int highLowValue;
+  int cutOff = 100; //This may need to be a global variable if we need to calibrate using a function
+                    //We don't need this value if we are using digital
+                    
   float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
   
 
   //call optoswitch function for HIGH or LOW value
-  //int optoReading = digitalRead(8);
+  //int optoReading = digitalRead(8); // if using digital
   int optoReading = analogRead(1);
   
    //Serial.print("Optoreading in fist function: ");
    //Serial.println(optoReading);
-   if(optoReading>100){
+   if(optoReading>cutOff){ //Only need this for analog
       optoReading = 0;
   }
-    else if(optoReading<=100){
+    else if(optoReading<=cutOff){
       optoReading = 1;
   }
+
    
    if(counter!=optoReading){
       distance = distance + conversion;
@@ -105,7 +99,7 @@ void forward(float x) {
       myOtherMotor->setSpeed(i); 
       myMotor->setSpeed(i);
       current_dist = distanceCalculator(current_dist, counter);
-      counter = encoder(counter); 
+      counter = checkOptoStatus(counter); 
       Serial.print("current dist acceleration: ");
       Serial.println(current_dist);
       delay(5);  
@@ -116,7 +110,7 @@ void forward(float x) {
   while(current_dist <= x-brakeDistance){
 
     current_dist = distanceCalculator(current_dist, counter);
-    counter = encoder(counter); 
+    counter = checkOptoStatus(counter); 
     
 
    Serial.print("current dist constant movement: ");
@@ -130,7 +124,7 @@ void forward(float x) {
 
     for (i=fullSpeed; i!=0; i--) {
       current_dist = distanceCalculator(current_dist, counter);
-      counter = encoder(counter); 
+      counter = checkOptoStatus(counter); 
       Serial.print("current dist decceleration: ");
       Serial.println(current_dist);
       delay(5);  

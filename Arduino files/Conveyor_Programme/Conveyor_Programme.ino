@@ -9,17 +9,11 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
 // Select which 'port' M1, M2, M3 or M4. In this case, M1
 Adafruit_DCMotor *converyorMotor = AFMS.getMotor(1);
-// You can also make another motor on port M2
-//Adafruit_DCMotor *myOtherMotor = AFMS.getMotor(2);
-
-/*Need to move servo to specific position depending on how many
-blocks have been picked up, if we set up paremeter as to how many
-blocks there are this will determine the position the servo=>the conveyor needs to be.
-Once we have got 5 blocks stored we need to wait until the robot is by the shelf, 
-then unload (back to 0 position)*/
 
 
 
+
+//Call function to run motor and increment conveyor belt
 void conveyorIncrament() {
   uint8_t i;
   int incramentSpeed = 170;
@@ -39,7 +33,7 @@ void conveyorIncrament() {
                     
     }
   
-
+//Call function to run motor and unload coneyor belt
 void unloadConveyor(){
     uint8_t i;
     int unloadSpeed = 255;
