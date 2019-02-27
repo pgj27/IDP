@@ -21,13 +21,14 @@ Adafruit_DCMotor *myMotor = AFMS.getMotor(1);
 Adafruit_DCMotor *myOtherMotor = AFMS.getMotor(2);
 
 
-int checkOptoStatus(int counter) { 
+int checkOptoStatus(int counter) {
+  int optoPin = 1; //WILL BE DIFFERENT FOR DIGITAL AND THIS IS USED IN MUTIPLE FUNCTIONS
   int cutOff = 100; //This may need to be a global variable if we need to calibrate using a function
                     //Otherwise we don't need this value if we are using digital
 
   //call optoswitch function for HIGH or LOW value
-  //int optoReading = digitalRead(8); //if using digital
-  int optoReading = analogRead(1);
+  //int optoReading = digitalRead(optoPin); //if using digital
+  int optoReading = analogRead(optoPin);
 
   if(optoReading>cutOff){ //only need this if using analog
     optoReading = 0;
@@ -49,7 +50,8 @@ int checkOptoStatus(int counter) {
   return counter;     
 }
 
-float distanceCalculator(float distance, int counter){
+float distanceCalculator(float currentDist , int counter){ //both global variables
+  int optoPin = 1;
   int cutOff = 100; //This may need to be a global variable if we need to calibrate using a function
                     //We don't need this value if we are using digital
                     
@@ -57,8 +59,8 @@ float distanceCalculator(float distance, int counter){
   
 
   //call optoswitch function for HIGH or LOW value
-  //int optoReading = digitalRead(8); // if using digital
-  int optoReading = analogRead(1);
+  //int optoReading = digitalRead(optoPin); // if using digital
+  int optoReading = analogRead(optoPin);
   
    //Serial.print("Optoreading in fist function: ");
    //Serial.println(optoReading);
@@ -71,62 +73,66 @@ float distanceCalculator(float distance, int counter){
 
    
    if(counter!=optoReading){
-      distance = distance + conversion;
+      currentDist += conversion;
 
   }
   //delay(10);
-  return distance;       
+  return currentDist;       
   
 }
 
 
 
-void forward(float x) {
-  uint8_t i;
-  int counter;
+void straightMovement(float x) {
+  uint8_t i; //used for incramenting speed for acceleration and decceleration
+  int counter; //GLOBAL VARIABLE THIS WILL NEED TO BE LOOKED AT
   int fullSpeed = 100;
-  float current_dist= 0; //For logging how far we have moved
+  float currentDist= 0; //GLOBAL VARIABLE THIS WILL NEED TO BE LOOKED AT
   float brakeDistance = 300; //For stopping on path and preparing to break
 
-  
-  //Need to be able to pass an amount x to move forward (will be paired with wheel encoder to get correct distance)
-  myOtherMotor->run(FORWARD);
-  myMotor->run(BACKWARD);
-
+  //if x is negative then we are moving backwards, if x positive -> forward
+  if(x<0){
+    myOtherMotor->run(FORWARD);
+    myMotor->run(BACKWARD); 
+  }
+  else if(x>0){
+     myOtherMotor->run(BACKWARD);
+     myMotor->run(FORWARD); 
+}
   //Acceleration
-    Serial.println("Accelerating forward");
+    Serial.println("Accelerating");
     for (i=0; i<fullSpeed; i++) {
       myOtherMotor->setSpeed(i); 
       myMotor->setSpeed(i);
-      current_dist = distanceCalculator(current_dist, counter);
+      currentDist = distanceCalculator(currentDist, counter);
       counter = checkOptoStatus(counter); 
-      Serial.print("current dist acceleration: ");
-      Serial.println(current_dist);
-      delay(5);  
+      Serial.print("Current dist acceleration: ");
+      Serial.println(currentDist);
+      delay(5);
     }
 
-  Serial.println("Constant movement forward");
-  
-  while(current_dist <= x-brakeDistance){
+  Serial.println("Constant movement");
+  //Constant speed whilst currentdistance is less thatn 
+  while(currentDist <= x-brakeDistance){
 
-    current_dist = distanceCalculator(current_dist, counter);
+    currentDist = distanceCalculator(currentDist, counter);
     counter = checkOptoStatus(counter); 
     
 
-   Serial.print("current dist constant movement: ");
-   Serial.println(current_dist);
+   Serial.print("Current dist constant movement: ");
+   Serial.println(currentDist);
    delay(5);
     
       }
       
     //Decceleration
-    Serial.println("Deccelerating forward");
+    Serial.println("Deccelerating");
 
     for (i=fullSpeed; i!=0; i--) {
-      current_dist = distanceCalculator(current_dist, counter);
+      currentDist = distanceCalculator(currentDist, counter);
       counter = checkOptoStatus(counter); 
-      Serial.print("current dist decceleration: ");
-      Serial.println(current_dist);
+      Serial.print("Current dist decceleration: ");
+      Serial.println(currentDist);
       delay(5);  
   }
 
@@ -143,7 +149,7 @@ void setup() {
   Serial.begin(9600);
   pinMode(1, INPUT);
   
-  forward(630);
+  //forward(630);
   //calibrate high low values
 
 }
