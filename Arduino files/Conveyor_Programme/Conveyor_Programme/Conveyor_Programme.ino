@@ -11,7 +11,7 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 // Adafruit_MotorShield AFMS = Adafruit_MotorShield(0x61); 
 
 // Select which 'port' M1, M2, M3 or M4. In this case, M1
-Adafruit_DCMotor *myMotor = AFMS.getMotor(1);
+Adafruit_DCMotor *converyorMotor = AFMS.getMotor(1);
 // You can also make another motor on port M2
 //Adafruit_DCMotor *myOtherMotor = AFMS.getMotor(2);
 
@@ -23,8 +23,7 @@ then unload (back to 0 position)*/
 
 
 
-
-void servo_control(int x) {
+void servo_control(int numBlocks) {
   uint8_t i;
   int incrament = 27; //increment to move conveyor
   int start_pos = 30; //starting position
@@ -33,22 +32,22 @@ void servo_control(int x) {
   int pos;
   
   //blocks loading
-  if(x<6){
+  if(numBlocks<6){
 
-  myMotor->run(FORWARD);
+  converyorMotor->run(FORWARD);
   for (i=0; i<170; i++) {
-    myMotor->setSpeed(i);  
+    converyorMotor->setSpeed(i);  
     delay(10);
   }
   for (i=170; i!=0; i--) {
-    myMotor->setSpeed(i);  
+    converyorMotor->setSpeed(i);  
     delay(10);
   }
   
   
 
   Serial.print("tech");
-  myMotor->run(RELEASE);
+  converyorMotor->run(RELEASE);
   delay(100);
   
     //for(pos = current_pos; pos <= current_pos + incrament; pos +=1){  
@@ -61,22 +60,22 @@ void servo_control(int x) {
   
 
 //unloading
-  else if(x==6){
+  else if(numBlocks==6){
 
     Serial.print("tock");
 
-    myMotor->run(BACKWARD);
+    converyorMotor->run(BACKWARD);
     for (i=0; i<255; i++) {
-    myMotor->setSpeed(i);  
+    converyorMotor->setSpeed(i);  
     delay(100);
   }
   
   for (i=255; i!=0; i--) {
-    myMotor->setSpeed(i);  
+    converyorMotor->setSpeed(i);  
     delay(10);
   }
 
-    myMotor->run(RELEASE);
+    converyorMotor->run(RELEASE);
     delay(100);
     //for(pos = current_pos; pos >= end_pos; pos -=1){
     //Serial.println(pos); 
@@ -99,13 +98,14 @@ void servo_control(int x) {
 void setup() {
   Serial.begin(9600);
   AFMS.begin();
+  
   //myservo.attach(servoPin);
   pinMode(LED_BUILTIN, OUTPUT); //For error 
-  //Run code example
-  //myservo.write(20);
+  
+
+
   for(int i=1; i<10; i++){
     Serial.println(i);
-    //myservo.write(i*20);
    servo_control(i);
    delay(100);
   }
