@@ -12,6 +12,7 @@ Robot::Robot()
   conveyorMotor = AFMS.getMotor(1);
   Serial.begin(9600);
   AFMS.begin();
+  pinMode(1, INPUT);
 }
 
 void Robot::conveyorIncrement()
@@ -54,6 +55,38 @@ void Robot::unloadConveyor()
   //Brake
   conveyorMotor->run(RELEASE);
   delay(100);
+}
+
+bool Robot::checkOptoStatus() //Consider moving inside distananceCalculator function
+{
+  optoPin = 1; //WILL BE DIFFERENT FOR DIGITAL AND THIS IS USED IN MUTIPLE FUNCTIONS
+  int cutOff = 100; //This may need to be a global variable if we need to calibrate using a function
+                    //Otherwise we don't need this value if we are using digital
+
+  //call optoswitch function for HIGH or LOW value
+  bool optoReading;
+  //optoReading = digitalRead(optoPin); //if using digital
+  int optoReadingAnalog = analogRead(optoPin);
+
+  if(optoReading>cutOff) //only need this if using analog
+    optoReading = false;
+  else
+    optoReading = true;
+
+  return optoReading;
+}
+
+void Robot::distanceCalculator()
+{
+
+  float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
+
+  int optoReading = checkOptoStatus();
+  if(optoCounter != optoReading)
+    currentDist += conversion;
+
+  optoCounter = optoReading;
+  //delay(10);
 }
 
 
