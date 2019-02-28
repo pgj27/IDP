@@ -10,6 +10,8 @@ Robot::Robot()
 {
   AFMS = Adafruit_MotorShield();
   conveyorMotor = AFMS.getMotor(1);
+  leftDriveMotor = AFMS.getMotor(2);
+  rightDriveMotor = AFMS.getMotor(3);
   Serial.begin(9600);
   AFMS.begin();
   pinMode(1, INPUT);
@@ -84,6 +86,57 @@ void Robot::distanceCalculator()
   //delay(10); //may make a difference in testing
 }
 
+void Robot::straightMovement(float distance) {
+  uint8_t i; //used for incrementing speed for acceleration and deceleration
+  int fullSpeed = 100;
+  currentDist = 0;
+  float brakeDistance = 300; //For stopping on path and preparing to break
+
+  //if x is negative then we are moving backwards, if x positive -> forward
+  if(distance < 0){
+    leftDriveMotor->run(FORWARD);
+    rightDriveMotor->run(BACKWARD);
+  }
+  else if(distance > 0){
+     leftDriveMotor->run(BACKWARD);
+     rightDriveMotor->run(FORWARD);
+  }
+  
+  //Acceleration
+  Serial.println("Accelerating");
+  for (i=0; i<fullSpeed; i++) {
+    leftDriveMotor->setSpeed(i);
+    rightDriveMotor->setSpeed(i);
+    distanceCalculator(); //Update distance since start of this command
+    Serial.print("Current dist acceleration: ");
+    Serial.println(currentDist);
+    delay(5);
+  }
+
+  Serial.println("Constant movement");
+  //Constant speed whilst currentDist is less than distance
+  while(currentDist <= distance-brakeDistance) {
+    distanceCalculator();
+    Serial.print("Current dist constant movement: ");
+    Serial.println(currentDist);
+    delay(5);
+    //Decceleration
+    Serial.println("Deccelerating");
+  }
+
+  for (i=fullSpeed; i!=0; i--) {
+    distanceCalculator();
+    Serial.print("Current dist decceleration: ");
+    Serial.println(currentDist);
+    delay(5);
+  }
+
+  //Brake
+  Serial.println("Brake");
+  leftDriveMotor->run(RELEASE);
+  rightDriveMotor->run(RELEASE);
+  delay(1000);
+}
 
 int main()
 {
