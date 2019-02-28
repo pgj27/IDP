@@ -83,7 +83,7 @@ float distanceCalculator(float currentDist , int counter){ //both global variabl
 
 
 
-void straightMovement(float x) {
+void straightMovement(float distance) {
   uint8_t i; //used for incramenting speed for acceleration and decceleration
   int counter; //GLOBAL VARIABLE THIS WILL NEED TO BE LOOKED AT
   int fullSpeed = 100;
@@ -91,11 +91,11 @@ void straightMovement(float x) {
   float brakeDistance = 300; //For stopping on path and preparing to break
 
   //if x is negative then we are moving backwards, if x positive -> forward
-  if(x<0){
+  if(distance<0){
     myOtherMotor->run(FORWARD);
     myMotor->run(BACKWARD); 
   }
-  else if(x>0){
+  else if(distance>0){
      myOtherMotor->run(BACKWARD);
      myMotor->run(FORWARD); 
 }
@@ -104,8 +104,7 @@ void straightMovement(float x) {
     for (i=0; i<fullSpeed; i++) {
       myOtherMotor->setSpeed(i); 
       myMotor->setSpeed(i);
-      currentDist = distanceCalculator(currentDist, counter);
-      counter = checkOptoStatus(counter); 
+      distanceCalculator();
       Serial.print("Current dist acceleration: ");
       Serial.println(currentDist);
       delay(5);
@@ -113,10 +112,9 @@ void straightMovement(float x) {
 
   Serial.println("Constant movement");
   //Constant speed whilst currentdistance is less thatn 
-  while(currentDist <= x-brakeDistance){
+  while(currentDist <= distance - brakeDistance){
 
-    currentDist = distanceCalculator(currentDist, counter);
-    counter = checkOptoStatus(counter); 
+    distanceCalculator(); 
     
 
    Serial.print("Current dist constant movement: ");
@@ -129,8 +127,7 @@ void straightMovement(float x) {
     Serial.println("Deccelerating");
 
     for (i=fullSpeed; i!=0; i--) {
-      currentDist = distanceCalculator(currentDist, counter);
-      counter = checkOptoStatus(counter); 
+      distanceCalculator();
       Serial.print("Current dist decceleration: ");
       Serial.println(currentDist);
       delay(5);  
