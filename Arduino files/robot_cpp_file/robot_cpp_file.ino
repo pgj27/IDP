@@ -9,9 +9,9 @@
 Robot::Robot()
 {
   AFMS = Adafruit_MotorShield();
-  conveyorMotor = AFMS.getMotor(1);
-  leftDriveMotor = AFMS.getMotor(2);
-  rightDriveMotor = AFMS.getMotor(3);
+  conveyorMotor = AFMS.getMotor(3);
+  leftDriveMotor = AFMS.getMotor(1);
+  rightDriveMotor = AFMS.getMotor(2);
   Serial.begin(9600);
   AFMS.begin();
   pinMode(1, INPUT);
@@ -62,25 +62,26 @@ void Robot::unloadConveyor()
 
 void Robot::distanceCalculator()
 {
-  optoPin = 1; //WILL BE DIFFERENT FOR DIGITAL AND THIS IS USED IN MUTIPLE FUNCTIONS
+  optoPin = 8; //WILL BE DIFFERENT FOR ANALOG DIGITAL AND THIS IS USED IN MUTIPLE FUNCTIONS
   float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
-  
+ 
   int cutOff = 100; //This may need to be a global variable if we need to calibrate using a function
                     //Otherwise we don't need this value if we are using digital
 
   //call optoswitch function for HIGH or LOW value
   bool optoReading;
   
-  //optoReading = digitalRead(optoPin); //if using digital
-  int optoReadingAnalog = analogRead(optoPin); //if using analog
-  if(optoReading>cutOff) //only need this if using analog
+  optoReading = digitalRead(optoPin); //if using digital
+  //int optoReadingAnalog = analogRead(optoPin); //if using analog
+  /*if(optoReading>cutOff) //only need this if using analog
     optoReading = false;
   else
     optoReading = true;
-
-
+*/
+  Serial.println(currentDist);
   if(optoCounter != optoReading)
     currentDist += conversion;
+    
 
     optoCounter = optoReading;
   //delay(10); //may make a difference in testing
@@ -90,7 +91,7 @@ void Robot::straightMovement(float distance) {
   uint8_t i; //used for incrementing speed for acceleration and deceleration
   int fullSpeed = 100;
   currentDist = 0;
-  float brakeDistance = 300; //For stopping on path and preparing to break
+  float brakeDistance = 200; //For stopping on path and preparing to break
 
   //if x is negative then we are moving backwards, if x positive -> forward
   if(distance < 0){
@@ -120,10 +121,11 @@ void Robot::straightMovement(float distance) {
     Serial.print("Current dist constant movement: ");
     Serial.println(currentDist);
     delay(5);
-    //Decceleration
-    Serial.println("Deccelerating");
-  }
+   
 
+  }
+  //Decceleration
+  Serial.println("Deccelerating");
   for (i=fullSpeed; i!=0; i--) {
     distanceCalculator();
     Serial.print("Current dist decceleration: ");
@@ -138,8 +140,18 @@ void Robot::straightMovement(float distance) {
   delay(1000);
 }
 
-int main()
+void setup()
 {
-  Robot robot();
-  return 0;
+  Robot radio_no_active;
+  Serial.println("Set up complete");
+  radio_no_active.straightMovement(600);
+  Serial.print("Current Distance: ");
+  Serial.println(radio_no_active.currentDist);
+  Serial.println();
+  
 }
+
+void loop(){
+}
+
+

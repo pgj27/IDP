@@ -13,6 +13,7 @@ class Robot
     void unloadConveyor();
     void distanceCalculator();
     void straightMovement(float distance);
+    float currentDist;
   private:
     Adafruit_MotorShield AFMS;
     Adafruit_DCMotor *conveyorMotor;
@@ -20,7 +21,7 @@ class Robot
     Adafruit_DCMotor *rightDriveMotor;
     int optoPin;
     bool optoCounter;
-    float currentDist;
+
 };
 
 #endif
