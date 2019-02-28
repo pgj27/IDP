@@ -11,7 +11,6 @@ class Robot
     Robot();
     void conveyorIncrement();
     void unloadConveyor();
-    bool checkOptoStatus();
     void distanceCalculator();
   private:
     Adafruit_MotorShield AFMS;

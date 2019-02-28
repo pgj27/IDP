@@ -57,36 +57,31 @@ void Robot::unloadConveyor()
   delay(100);
 }
 
-bool Robot::checkOptoStatus() //Consider moving inside distananceCalculator function
+
+void Robot::distanceCalculator()
 {
   optoPin = 1; //WILL BE DIFFERENT FOR DIGITAL AND THIS IS USED IN MUTIPLE FUNCTIONS
+  float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
+  
   int cutOff = 100; //This may need to be a global variable if we need to calibrate using a function
                     //Otherwise we don't need this value if we are using digital
 
   //call optoswitch function for HIGH or LOW value
   bool optoReading;
+  
   //optoReading = digitalRead(optoPin); //if using digital
-  int optoReadingAnalog = analogRead(optoPin);
-
+  int optoReadingAnalog = analogRead(optoPin); //if using analog
   if(optoReading>cutOff) //only need this if using analog
     optoReading = false;
   else
     optoReading = true;
 
-  return optoReading;
-}
 
-void Robot::distanceCalculator()
-{
-
-  float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
-
-  int optoReading = checkOptoStatus();
   if(optoCounter != optoReading)
     currentDist += conversion;
 
-  optoCounter = optoReading;
-  //delay(10);
+    optoCounter = optoReading;
+  //delay(10); //may make a difference in testing
 }
 
 
