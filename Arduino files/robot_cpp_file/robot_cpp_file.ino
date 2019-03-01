@@ -15,7 +15,7 @@ Robot::Robot()
   gripperMotor = AFMS.getMotor(4);
   Serial.begin(9600);
   AFMS.begin();
-  pinMode(1, INPUT);
+  pinMode(optoPin, INPUT); //If digital
 }
 
 void Robot::conveyorIncrement()
@@ -63,23 +63,23 @@ void Robot::unloadConveyor()
 
 void Robot::distanceCalculator()
 {
-  optoPin = 8; //WILL BE DIFFERENT FOR ANALOG DIGITAL AND THIS IS USED IN MUTIPLE FUNCTIONS
+  optoPin = 1; //WILL BE DIFFERENT FOR ANALOG DIGITAL AND THIS IS USED IN MUTIPLE FUNCTIONS
   float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
  
   int cutOff = 100; //This may need to be a global variable if we need to calibrate using a function
                     //Otherwise we don't need this value if we are using digital
 
-  //call optoswitch function for HIGH or LOW value
-  bool optoReading;
-  
-  optoReading = digitalRead(optoPin); //if using digital
-  //int optoReadingAnalog = analogRead(optoPin); //if using analog
-  /*if(optoReading>cutOff) //if using analog
+  //call optoswitch function for HIGH or LOW value  
+  //bool optoReading = digitalRead(optoPin); //if using digital
+
+  int optoReading= analogRead(optoPin); //if using analog
+  Serial.print(optoReading);
+  if(optoReading>cutOff) //if using analog
     optoReading = false;
   else
     optoReading = true;
-*/
-  Serial.println(currentDist);
+
+  //Serial.println(currentDist);
   if(optoCounter != optoReading)
     currentDist += conversion;
     
@@ -88,12 +88,12 @@ void Robot::distanceCalculator()
   //delay(10); //may make a difference in testing
 }
 //MAY NEED TO MAKE DECCELERATION AND ACCELERATION FASTER. ALSO HAVE CONTROL METHODS
-//May be better way to deccelerate 
+//May be a better way to deccelerate 
 void Robot::straightMovement(float distance) { 
   uint8_t i; //used for incrementing speed for acceleration and deceleration
   int fullSpeed = 100;
   currentDist = 0;
-  float brakeDistance = 200; //For stopping on path and preparing to break
+  float brakeDistance = 300; //For stopping on path and preparing to break
 
   //if x is negative then we are moving backwards, if x positive -> forward
   if(distance < 0){
