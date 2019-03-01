@@ -15,7 +15,15 @@ Robot::Robot()
   gripperMotor = AFMS.getMotor(4);
   Serial.begin(9600);
   AFMS.begin();
-  pinMode(optoPin, INPUT); //If digital
+
+  optoPin = 1;
+  pinMode(optoPin, INPUT);
+}
+
+void Robot::processCommand(String input)
+{
+  Serial.println(input);
+
 }
 
 void Robot::conveyorIncrement()
@@ -195,18 +203,45 @@ void Robot::turn90(int rotation) { //positive for right negative for left
   rightDriveMotor->run(RELEASE);
   delay(100);
 }
+
 void setup()
 {
-  Robot radio_no_active;
+  Robot r;
   Serial.println("Set up complete");
-  radio_no_active.straightMovement(600);
-  Serial.print("Current Distance: ");
-  Serial.println(radio_no_active.currentDist);
+  //r.straightMovement(600);
   Serial.println();
-  
 }
 
-void loop(){
+void loop()
+{
+  if (Serial.available()) {
+    char byte_in = Serial.read();
+    if (byte_in == CMD_START) {
+      Serial.println("Got command");
+      byte_in = Serial.read();
+      int i = 0;
+      
+      if (byte_in == CMD_FORWARD) {
+        Serial.println("Forward command");
+        char dist[10];
+
+        while (byte_in != CMD_END && i < 10) {
+          dist[i] = byte_in;
+          byte_in = Serial.read();
+          i++;
+        }
+
+        Serial.print("Forward distance: ");
+        for (int n = 0; n < i; n++)
+          Serial.print(dist[n]);
+        Serial.println();
+      }
+      else
+        Serial.println("Unknown command");
+    }
+  }
+  else
+    Serial.println("No byte");
+  delay(100);
+  //r.processCommand();
 }
-
-
