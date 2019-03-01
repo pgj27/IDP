@@ -9,9 +9,10 @@
 Robot::Robot()
 {
   AFMS = Adafruit_MotorShield();
-  conveyorMotor = AFMS.getMotor(3);
   leftDriveMotor = AFMS.getMotor(1);
   rightDriveMotor = AFMS.getMotor(2);
+  conveyorMotor = AFMS.getMotor(3);
+  gripperMotor = AFMS.getMotor(4);
   Serial.begin(9600);
   AFMS.begin();
   pinMode(1, INPUT);
@@ -73,7 +74,7 @@ void Robot::distanceCalculator()
   
   optoReading = digitalRead(optoPin); //if using digital
   //int optoReadingAnalog = analogRead(optoPin); //if using analog
-  /*if(optoReading>cutOff) //only need this if using analog
+  /*if(optoReading>cutOff) //if using analog
     optoReading = false;
   else
     optoReading = true;
@@ -86,8 +87,9 @@ void Robot::distanceCalculator()
     optoCounter = optoReading;
   //delay(10); //may make a difference in testing
 }
-
-void Robot::straightMovement(float distance) {
+//MAY NEED TO MAKE DECCELERATION AND ACCELERATION FASTER. ALSO HAVE CONTROL METHODS
+//May be better way to deccelerate 
+void Robot::straightMovement(float distance) { 
   uint8_t i; //used for incrementing speed for acceleration and deceleration
   int fullSpeed = 100;
   currentDist = 0;
@@ -111,7 +113,7 @@ void Robot::straightMovement(float distance) {
     distanceCalculator(); //Update distance since start of this command
     Serial.print("Current dist acceleration: ");
     Serial.println(currentDist);
-    delay(5);
+    //delay(5);
   }
 
   Serial.println("Constant movement");
@@ -120,7 +122,7 @@ void Robot::straightMovement(float distance) {
     distanceCalculator();
     Serial.print("Current dist constant movement: ");
     Serial.println(currentDist);
-    delay(5);
+    //delay(5);
    
 
   }
@@ -130,16 +132,69 @@ void Robot::straightMovement(float distance) {
     distanceCalculator();
     Serial.print("Current dist decceleration: ");
     Serial.println(currentDist);
-    delay(5);
+    //delay(5);
   }
 
   //Brake
   Serial.println("Brake");
   leftDriveMotor->run(RELEASE);
   rightDriveMotor->run(RELEASE);
-  delay(1000);
+  //delay(100);
 }
 
+void Robot::turn90(int rotation) { //positive for right negative for left
+  float turnDistance = 100; //NEED TO TEST THIS TO FIND HOW MANY ROTATIONS GIVE 90 degress 
+  uint8_t i; //used for incrementing speed for acceleration and deceleration
+  int turnSpeed = 100; //Maximum speed during turning
+  currentDist = 0; 
+  float brakeRotation = 200; //For stopping constant velocit and preparing to break
+
+  //if x is negative then we are moving backwards, if x positive -> forward
+  if(rotation < 0){
+    leftDriveMotor->run(FORWARD); //THESE NEED TO BE CHECKED FOR CORRECT DIR
+    rightDriveMotor->run(FORWARD);
+  }
+  else if(rotation > 0){
+     leftDriveMotor->run(BACKWARD);//THESE NEED TO BE CHECKED FOR CORRECT DIR
+     rightDriveMotor->run(BACKWARD);
+  }
+  
+  //Acceleration
+  Serial.println("Accelerating");
+  for (i=0; i<turnSpeed; i++) {
+    leftDriveMotor->setSpeed(i);
+    rightDriveMotor->setSpeed(i);
+    distanceCalculator(); //Update distance since start of this command
+    Serial.print("Current dist acceleration: ");
+    Serial.println(currentDist);
+    //delay(5);
+  }
+
+  Serial.println("Constant movement");
+  //Constant speed whilst currentDist is less than distance
+  while(currentDist <= turnDistance - brakeRotation) {
+    distanceCalculator();
+    Serial.print("Current dist constant movement: ");
+    Serial.println(currentDist);
+    //delay(5);
+   
+
+  }
+  //Decceleration
+  Serial.println("Deccelerating"); 
+  for (i=turnSpeed; i!=0; i--) {
+    distanceCalculator();
+    Serial.print("Current dist decceleration: ");
+    Serial.println(currentDist);
+    //delay(5);
+  }
+
+  //Brake
+  Serial.println("Brake");
+  leftDriveMotor->run(RELEASE);
+  rightDriveMotor->run(RELEASE);
+  delay(100);
+}
 void setup()
 {
   Robot radio_no_active;
