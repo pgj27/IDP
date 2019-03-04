@@ -20,10 +20,30 @@ Robot::Robot()
   pinMode(optoPin, INPUT);
 }
 
-void Robot::processCommand(String input)
+void Robot::processCommand(char byte_in)
 {
-  Serial.println(input);
+  if (byte_in == CMD_START) {
 
+    Serial.print("Got command: ");
+    while (!Serial.available())
+      delay(10);
+    byte_in = Serial.read();
+    Serial.println(byte_in);
+
+    if (byte_in == CMD_FORWARD) {
+      unsigned char byte_1 = Serial.read();
+      char byte_2 = Serial.read();
+      short dist;
+      dist = byte_2;
+      dist <<= 8;
+      dist += byte_1;
+      Serial.print("Forward distance: ");
+      Serial.println(dist);
+      this->straightMovement(dist);
+    }
+    else
+      Serial.println("Unknown command");
+  }
 }
 
 void Robot::conveyorIncrement()
@@ -81,7 +101,7 @@ void Robot::distanceCalculator()
   //bool optoReading = digitalRead(optoPin); //if using digital
 
   int optoReading= analogRead(optoPin); //if using analog
-  Serial.print(optoReading);
+  //Serial.println(optoReading);
   if(optoReading>cutOff) //if using analog
     optoReading = false;
   else
@@ -95,8 +115,9 @@ void Robot::distanceCalculator()
     optoCounter = optoReading;
   //delay(10); //may make a difference in testing
 }
-//MAY NEED TO MAKE DECCELERATION AND ACCELERATION FASTER. ALSO HAVE CONTROL METHODS
-//May be a better way to deccelerate 
+
+//MAY NEED TO MAKE ELERATION AND ACCELERATION FASTER. ALSO HAVE CONTROL METHODS
+//May be a better way to decelerate 
 void Robot::straightMovement(float distance) { 
   uint8_t i; //used for incrementing speed for acceleration and deceleration
   int fullSpeed = 100;
@@ -134,11 +155,11 @@ void Robot::straightMovement(float distance) {
    
 
   }
-  //Decceleration
-  Serial.println("Deccelerating");
+  //Deceleration
+  Serial.println("Decelerating");
   for (i=fullSpeed; i!=0; i--) {
     distanceCalculator();
-    Serial.print("Current dist decceleration: ");
+    Serial.print("Current dist deceleration: ");
     Serial.println(currentDist);
     //delay(5);
   }
@@ -188,8 +209,8 @@ void Robot::turn90(int rotation) { //positive for right negative for left
    
 
   }
-  //Decceleration
-  Serial.println("Deccelerating"); 
+  //Deceleration
+  Serial.println("Decelerating"); 
   for (i=turnSpeed; i!=0; i--) {
     distanceCalculator();
     Serial.print("Current dist decceleration: ");
@@ -206,7 +227,6 @@ void Robot::turn90(int rotation) { //positive for right negative for left
 
 void setup()
 {
-  Robot r;
   Serial.println("Set up complete");
   //r.straightMovement(600);
   Serial.println();
@@ -214,39 +234,12 @@ void setup()
 
 void loop()
 {
+  static Robot r;
   if (Serial.available()) {
     char byte_in = Serial.read();
     Serial.print("Got byte: ");
     Serial.println(byte_in);
-    if (byte_in == CMD_START) {
-
-      Serial.print("Got command: ");
-      while (!Serial.available())
-        delay(10);
-      byte_in = Serial.read();
-      Serial.println(byte_in);
-      
-      int i = 0;
-      if (byte_in == CMD_FORWARD) {
-        Serial.println("Forward command");
-        char dist[10];
-
-        while (byte_in != CMD_END && i < 10) {
-          dist[i] = byte_in;
-          byte_in = Serial.read();
-          i++;
-        }
-
-        for (int n = 0; n < i; n++)
-          Serial.print(dist[n]);
-        Serial.println(" - dist bytes");  
-        Serial.print("Forward distance: ");
-        Serial.println(short(dist[0]));
-      }
-      else
-        Serial.println("Unknown command");
-    }
+    r.processCommand(byte_in);
   }
   //delay(100);
-  //r.processCommand();
 }

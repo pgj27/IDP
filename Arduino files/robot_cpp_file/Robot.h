@@ -12,7 +12,7 @@ class Robot
 {
   public:
     Robot();
-    void processCommand(String input);
+    void processCommand(char byte_in);
     void conveyorIncrement();
     void unloadConveyor();
     void distanceCalculator();
