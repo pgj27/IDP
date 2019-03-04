@@ -63,7 +63,14 @@ void loop() {
 void forward(){
     if(process == 1){
       Serial.println("Moving forward");
-      delay(3000);
+      int i;
+      for (i=0; i<10; i +=1) {
+        if(process == 1){
+        Serial.println(i);
+        delay(500);
+        }
+      }
+      delay(1000);
     }
 }
 

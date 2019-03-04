@@ -304,17 +304,17 @@ void loop()
   //Block has been detected
   else if(r.process == 2){
     r.gripBlock();
-    if(r.process ==2) {
+    if(r.process == 2) {
       r.process = 3; //if magnet not detected go on to process 3
     }
   }
 
   //Magnet not detected
-  else if(r.process==3){
+  else if(r.process == 3){
     r.loadConveyor();
     r.conveyorIncrement();
     r.blockNo += 1;
-    if(r.blockNo = 5){
+    if(r.blockNo == 5){
       r.process = 6; //go back to shelf
     }
     else{
