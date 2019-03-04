@@ -6,6 +6,8 @@
 #include "Arduino.h"
 #include "Robot.h"
 
+bool setup_done = false;
+
 Robot::Robot(const byte whichISR) : whichISR (whichISR)
 {
   AFMS = Adafruit_MotorShield();
@@ -47,11 +49,10 @@ void Robot::processCommand(char byte_in)
 {
   if (byte_in == CMD_START) {
 
-    Serial.print("Got command: ");
+    Serial.println("Got command");
     while (!Serial.available())
       delay(10);
     byte_in = Serial.read();
-    Serial.println(byte_in);
 
     if (byte_in == CMD_FORWARD) {
       unsigned char byte_1 = Serial.read();
@@ -63,6 +64,7 @@ void Robot::processCommand(char byte_in)
       Serial.print("Forward distance: ");
       Serial.println(dist);
       this->straightMovement(dist);
+      Serial.println("Finished moving");
     }
     else
       Serial.println("Unknown command");
@@ -220,20 +222,22 @@ void Robot::turn90(int rotation) { //positive for right negative for left
 void setup()
 {
 
-  Robot r(0);
-  r.begin();
-  Serial.println("Set up complete");
-  r.straightMovement(600);
-  r.straightMovement(100);
-  Serial.println();
+  //Robot r(0);
+  //r.begin();
 }
 
 void loop()
 {
 
   static Robot r(0);
-  if (Serial.available()) {
+  if (!setup_done) {
+    r.begin();
+    setup_done = true;
+    Serial.println("Set up complete");
+    Serial.println();
+  }
 
+  if (Serial.available()) {
     char byte_in = Serial.read();
     Serial.print("Got byte: ");
     Serial.println(byte_in);
