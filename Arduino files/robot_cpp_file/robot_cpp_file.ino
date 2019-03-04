@@ -6,7 +6,7 @@
 #include "Arduino.h"
 #include "Robot.h"
 
-Robot::Robot()
+Robot::Robot(const byte whichISR) : whichISR (whichISR)
 {
   AFMS = Adafruit_MotorShield();
   leftDriveMotor = AFMS.getMotor(1);
@@ -15,9 +15,32 @@ Robot::Robot()
   gripperMotor = AFMS.getMotor(4);
   Serial.begin(9600);
   AFMS.begin();
+  optoPin = 2;
+  pinMode(optoPin, INPUT_PULLUP);
+  currentDist = 0;
+  process = 0;
+}
 
-  optoPin = 1;
-  pinMode(optoPin, INPUT);
+void Robot::begin(){
+  switch (whichISR)
+  {
+    case 0:
+      attachInterrupt (digitalPinToInterrupt(optoPin), isr0, CHANGE);
+      instance0 = this;
+      break;
+  }
+}
+
+void Robot::isr0(){
+  instance0 -> distanceCalculator();
+}
+
+Robot * Robot::instance0;
+
+void Robot::distanceCalculator()
+{
+  float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
+    currentDist += conversion;
 }
 
 void Robot::processCommand(String input)
@@ -69,32 +92,7 @@ void Robot::unloadConveyor()
 }
 
 
-void Robot::distanceCalculator()
-{
-  optoPin = 1; //WILL BE DIFFERENT FOR ANALOG DIGITAL AND THIS IS USED IN MUTIPLE FUNCTIONS
-  float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
- 
-  int cutOff = 100; //This may need to be a global variable if we need to calibrate using a function
-                    //Otherwise we don't need this value if we are using digital
 
-  //call optoswitch function for HIGH or LOW value  
-  //bool optoReading = digitalRead(optoPin); //if using digital
-
-  int optoReading= analogRead(optoPin); //if using analog
-  Serial.print(optoReading);
-  if(optoReading>cutOff) //if using analog
-    optoReading = false;
-  else
-    optoReading = true;
-
-  //Serial.println(currentDist);
-  if(optoCounter != optoReading)
-    currentDist += conversion;
-    
-
-    optoCounter = optoReading;
-  //delay(10); //may make a difference in testing
-}
 //MAY NEED TO MAKE DECCELERATION AND ACCELERATION FASTER. ALSO HAVE CONTROL METHODS
 //May be a better way to deccelerate 
 void Robot::straightMovement(float distance) { 
@@ -118,29 +116,25 @@ void Robot::straightMovement(float distance) {
   for (i=0; i<fullSpeed; i++) {
     leftDriveMotor->setSpeed(i);
     rightDriveMotor->setSpeed(i);
-    distanceCalculator(); //Update distance since start of this command
     Serial.print("Current dist acceleration: ");
     Serial.println(currentDist);
-    //delay(5);
   }
 
   Serial.println("Constant movement");
   //Constant speed whilst currentDist is less than distance
   while(currentDist <= distance-brakeDistance) {
-    distanceCalculator();
+   
     Serial.print("Current dist constant movement: ");
     Serial.println(currentDist);
-    //delay(5);
    
 
   }
   //Decceleration
   Serial.println("Deccelerating");
   for (i=fullSpeed; i!=0; i--) {
-    distanceCalculator();
+
     Serial.print("Current dist decceleration: ");
     Serial.println(currentDist);
-    //delay(5);
   }
 
   //Brake
@@ -206,15 +200,17 @@ void Robot::turn90(int rotation) { //positive for right negative for left
 
 void setup()
 {
-  Robot r;
+  Robot r(0);
+  r.begin();
   Serial.println("Set up complete");
-  //r.straightMovement(600);
+  r.straightMovement(600);
+  r.straightMovement(100);
   Serial.println();
 }
 
 void loop()
 {
-  if (Serial.available()) {
+  /*if (Serial.available()) {
     char byte_in = Serial.read();
     Serial.print("Got byte: ");
     Serial.println(byte_in);
@@ -248,5 +244,5 @@ void loop()
     }
   }
   //delay(100);
-  //r.processCommand();
+  //r.processCommand(); */
 }

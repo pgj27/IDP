@@ -10,17 +10,27 @@
 
 class Robot
 {
+
+
   public:
     Robot();
     void processCommand(String input);
     void conveyorIncrement();
     void unloadConveyor();
-    void distanceCalculator();
     void straightMovement(float distance);
     void turn90(int deg);
-    float currentDist;
     String command;
+    Robot (const byte which);
+    void begin ();
+    volatile float currentDist;
+    volatile int process;
+    
   private:
+    static void isr0();
+    static void isr1();
+    static void isr2();
+    const byte whichISR;
+    static Robot * instance0;
     Adafruit_MotorShield AFMS;
     Adafruit_DCMotor *conveyorMotor;
     Adafruit_DCMotor *leftDriveMotor;
@@ -29,6 +39,8 @@ class Robot
     int optoPin;
     int gripperServoPin;
     bool optoCounter;
+    void distanceCalculator();
+     
 
 };
 
