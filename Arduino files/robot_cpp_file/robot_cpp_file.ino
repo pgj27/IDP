@@ -216,11 +216,17 @@ void loop()
 {
   if (Serial.available()) {
     char byte_in = Serial.read();
+    Serial.print("Got byte: ");
+    Serial.println(byte_in);
     if (byte_in == CMD_START) {
-      Serial.println("Got command");
+
+      Serial.print("Got command: ");
+      while (!Serial.available())
+        delay(10);
       byte_in = Serial.read();
-      int i = 0;
+      Serial.println(byte_in);
       
+      int i = 0;
       if (byte_in == CMD_FORWARD) {
         Serial.println("Forward command");
         char dist[10];
@@ -231,17 +237,16 @@ void loop()
           i++;
         }
 
-        Serial.print("Forward distance: ");
         for (int n = 0; n < i; n++)
           Serial.print(dist[n]);
-        Serial.println();
+        Serial.println(" - dist bytes");  
+        Serial.print("Forward distance: ");
+        Serial.println(short(dist[0]));
       }
       else
         Serial.println("Unknown command");
     }
   }
-  else
-    Serial.println("No byte");
-  delay(100);
+  //delay(100);
   //r.processCommand();
 }
