@@ -7,27 +7,25 @@
 #include "Robot.h"
 #include <Servo.h>
 
-bool setup_done = false;
-
 Robot::Robot(const byte whichISR) : whichISR (whichISR)
 {
   AFMS = Adafruit_MotorShield();
   leftDriveMotor = AFMS.getMotor(1);
   rightDriveMotor = AFMS.getMotor(2);
   conveyorMotor = AFMS.getMotor(3);
-  Servo gripperServo;
+  gripperMotor = AFMS.getMotor(4);
   gripperServo.attach(9); 
   Serial.begin(9600);
   AFMS.begin();
   optoPin = 2; //All interrupts pins chosen correctly (2,3,18,19,20,21)
   hallPin = 3;
-  //blockdetecPin = 18;
-  
+  blockdetecPin = 18;
   pinMode(optoPin, INPUT_PULLUP);
   pinMode(hallPin, INPUT_PULLUP);
   pinMode(blockdetecPin, INPUT_PULLUP);
   currentDist = 0;
   process = 0;
+  blockNo = 0;
 }
 
 void Robot::begin(){
@@ -74,12 +72,13 @@ void Robot::blockDetection(){
 
 void Robot::processCommand(char byte_in)
 {
-  if (byte_in == CMD_START) {
+  if (byte_in == CMD_START){
 
-    Serial.println("Got command");
+    Serial.print("Got command: ");
     while (!Serial.available())
       delay(10);
     byte_in = Serial.read();
+    Serial.println(byte_in);
 
     if (byte_in == CMD_FORWARD) {
       unsigned char byte_1 = Serial.read();
@@ -91,7 +90,6 @@ void Robot::processCommand(char byte_in)
       Serial.print("Forward distance: ");
       Serial.println(dist);
       this->straightMovement(dist);
-      Serial.println("Finished moving");
     }
     else
       Serial.println("Unknown command");
@@ -139,8 +137,6 @@ void Robot::unloadConveyor()
   conveyorMotor->run(RELEASE);
   delay(100);
 }
-
-
 
 
 //MAY NEED TO MAKE DECCELERATION AND ACCELERATION FASTER
@@ -221,40 +217,137 @@ void Robot::gripBlock(){
   }
 
   //GRIPPING BLOCK
-  //int startingPos 
-  //for(
+  int pos;
+  for(pos = startingPos; pos <= gripPos; pos += 1){ 
+    gripperServo.write(pos);
+    delay(5);
+  }
   
 }
 
+void Robot::loadConveyor(){
+
+  //ROTATE GRIPPER ARM
+  uint8_t i;
+  int rotateSpeed = 170; //this may be different for returning arm
+  gripperMotor->run(FORWARD);
+  for (i=0; i<rotateSpeed; i++) {
+    conveyorMotor->setSpeed(i);
+    delay(10); 
+  }
+
+  for (i=rotateSpeed; i!=0; i--) {
+    conveyorMotor->setSpeed(i);
+    delay(10);
+  }
+  conveyorMotor->run(RELEASE); //Need to test how to pause the gripper arm
+  delay(100);
+
+  //RELEASE BLOCK
+  int pos;
+  for(pos = gripPos; pos >= startingPos; pos -= 1){ 
+    gripperServo.write(pos);
+    delay(5);
+   }
+   
+ //ROTATE GRIPPER ARM
+  gripperMotor->run(BACKWARD);
+  for (i=0; i<rotateSpeed; i++) {
+    conveyorMotor->setSpeed(i);
+    delay(10); 
+  }
+
+  for (i=rotateSpeed; i!=0; i--) {
+    conveyorMotor->setSpeed(i);
+    delay(10);
+  }
+  conveyorMotor->run(RELEASE);
+}
+
+void Robot::releaseBlock(){ //BLOCK SHOULD BE ABLE TO PASS UNDER WITHOUT MOVING ARM
+  //RELEASE BLOCK
+  int pos;
+  for(pos = gripPos; pos >= startingPos; pos -= 1){ 
+    gripperServo.write(pos);
+    delay(5);
+   }
+}
+
+
+Robot r(0);
+
 void setup()
 {
-
-<<<<<<< HEAD
-  //Robot r(0);
-  //r.begin();
-=======
-  Robot r(0);
   r.begin();
   Serial.println("Set up complete");
   r.process = 1;
   r.straightMovement(600);
   r.straightMovement(100);
   Serial.println();
->>>>>>> a15ebe8a95aa53ea8f364e48d7f881e4c8b80c8d
 }
 
 void loop()
 {
-/*
-  static Robot r(0);
-  if (!setup_done) {
-    r.begin();
-    setup_done = true;
-    Serial.println("Set up complete");
-    Serial.println();
+  if(r.process == 0){
+    //instructions for planning first route (this may all be moved to setup)
+    r.process =1;
   }
 
+  else if(r.process == 1){
+    //here we pring out coordinates for rotating and straightmovement
+    r.straightMovement(100); //an example
+    if(r.process == 1) {
+      r.process = 5; //if block not found revert to 5 and re-route
+    }
+  }
+  
+  //Block has been detected
+  else if(r.process == 2){
+    r.gripBlock();
+    if(r.process ==2) {
+      r.process = 3; //if magnet not detected go on to process 3
+    }
+  }
+
+  //Magnet not detected
+  else if(r.process==3){
+    r.loadConveyor();
+    r.conveyorIncrement();
+    r.blockNo += 1;
+    if(r.blockNo = 5){
+      r.process = 6; //go back to shelf
+    }
+    else{
+      r.process = 1; //if all instructions printed at once else to 5/0 and re-route
+    }
+  }
+
+  //Magnet detected
+  else if(r.process == 4){
+    r.releaseBlock();
+    r.process = 1; //if all instructions printed at once else to 5/0 and re-route
+  }
+
+  else if(r.process == 5){
+    //instructions to re-route (this may be done under 1)
+    r.process = 1;
+  }
+
+  else if(r.process == 6){
+    //instructions to get back to shelf
+    r.unloadConveyor();
+  }
+
+  
+  
+  
+
+
+  
+/*
+  static Robot r(0);
   if (Serial.available()) {
+
     char byte_in = Serial.read();
     Serial.print("Got byte: ");
     Serial.println(byte_in);

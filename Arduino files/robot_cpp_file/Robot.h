@@ -7,6 +7,7 @@
 #include "Arduino.h"
 #include "Wire.h"
 #include "Adafruit_MotorShield.h"
+#include <Servo.h>
 
 class Robot
 {
@@ -15,6 +16,8 @@ class Robot
   public:
     Robot();
     void processCommand(char byte_in);
+    void loadConveyor();
+    void releaseBlock();
     void conveyorIncrement();
     void unloadConveyor();
     void straightMovement(float distance);
@@ -28,6 +31,7 @@ class Robot
     volatile int process; //detetmines what the robot should be doing, 0 = setup/scanning route,
                           //1 = following route, 2 = positioning above block and gripping, 3 = storing block on conveyor
                           //4 = releasing a magnetic block, 5 = scanning and re-routing, 6 = unloading
+    int blockNo; //for storing the value of blocks stored on the robot
     
   private:
     static void isr0(); //intermediate ISRs for directing to actual ISRs
@@ -42,10 +46,14 @@ class Robot
     Adafruit_DCMotor *conveyorMotor; 
     Adafruit_DCMotor *leftDriveMotor;
     Adafruit_DCMotor *rightDriveMotor;
+    Adafruit_DCMotor *gripperMotor;
+    Servo gripperServo;
     int optoPin; //Opto switch pin (input)
     int hallPin; //Hall effect sensor pin (input)
     int blockdetecPin; //Block detector pin (input)
     int gripperServoPin; //Pin to gripper servo (output)
+    int startingPos = 19; //for gripping block
+    int gripPos = 100;    //for gripping block
 
 };
 
