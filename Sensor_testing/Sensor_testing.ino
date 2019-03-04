@@ -71,7 +71,7 @@ void blockDetection(){
      Serial.println("Block detected");
      process = 2;
      /*In here we need to call a function that moves the robot 
-     forward enought to position the block between the gripper
+     forward enough to position the block between the gripper
      and then grip the block (ready for magnet Detection)*/
     
 }
