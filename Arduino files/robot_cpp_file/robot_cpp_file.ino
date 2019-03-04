@@ -15,8 +15,13 @@ Robot::Robot(const byte whichISR) : whichISR (whichISR)
   gripperMotor = AFMS.getMotor(4);
   Serial.begin(9600);
   AFMS.begin();
-  optoPin = 2;
+  optoPin = 2; //All interrupts pins chosen correctly (2,3,18,19,20,21)
+  hallPin = 3;
+  //blockdetecPin = 18;
+  
   pinMode(optoPin, INPUT_PULLUP);
+  pinMode(hallPin, INPUT_PULLUP);
+  pinMode(blockdetecPin, INPUT_PULLUP);
   currentDist = 0;
   process = 0;
 }
@@ -26,22 +31,42 @@ void Robot::begin(){
   {
     case 0:
       attachInterrupt (digitalPinToInterrupt(optoPin), isr0, CHANGE);
+      attachInterrupt (digitalPinToInterrupt(hallPin), isr1, RISING);
+      attachInterrupt (digitalPinToInterrupt(blockdetecPin), isr2, RISING);
       instance0 = this;
       break;
   }
 }
 
+Robot * Robot::instance0; // for use by ISR glue routines
+
 void Robot::isr0(){
   instance0 -> distanceCalculator();
 }
 
-Robot * Robot::instance0;
+void Robot::isr1(){
+  instance0 -> magnetDetection();
+}
 
-void Robot::distanceCalculator()
-{
+void Robot::isr2(){
+  instance0 -> blockDetection();
+}
+
+
+void Robot::distanceCalculator(){
   float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
     currentDist += conversion;
 }
+
+void Robot::magnetDetection(){
+  process = 4;
+}
+
+void Robot::blockDetection(){
+  process = 2;
+}
+
+
 
 void Robot::processCommand(char byte_in)
 {
@@ -114,53 +139,55 @@ void Robot::unloadConveyor()
 
 
 
-//MAY NEED TO MAKE DECCELERATION AND ACCELERATION FASTER. ALSO HAVE CONTROL METHODS
+//MAY NEED TO MAKE DECCELERATION AND ACCELERATION FASTER
 //May be a better way to deccelerate 
 void Robot::straightMovement(float distance) { 
-  uint8_t i; //used for incrementing speed for acceleration and deceleration
-  int fullSpeed = 100;
-  currentDist = 0;
-  float brakeDistance = 300; //For stopping on path and preparing to break
-
-  //if x is negative then we are moving backwards, if x positive -> forward
-  if(distance < 0){
-    leftDriveMotor->run(FORWARD);
-    rightDriveMotor->run(BACKWARD);
-  }
-  else if(distance > 0){
-     leftDriveMotor->run(BACKWARD);
-     rightDriveMotor->run(FORWARD);
-  }
+  if(process == 1){
+    uint8_t i; //used for incrementing speed for acceleration and deceleration
+    int fullSpeed = 100;
+    currentDist = 0;
+    float brakeDistance = 300; //For stopping on path and preparing to break
   
-  //Acceleration
-  Serial.println("Accelerating");
-  for (i=0; i<fullSpeed; i++) {
-    leftDriveMotor->setSpeed(i);
-    rightDriveMotor->setSpeed(i);
-    Serial.print("Current dist acceleration: ");
-    Serial.println(currentDist);
+    //if x is negative then we are moving backwards, if x positive -> forward
+    if(distance < 0){
+      leftDriveMotor->run(FORWARD);
+      rightDriveMotor->run(BACKWARD);
+    }
+    else if(distance > 0){
+       leftDriveMotor->run(BACKWARD);
+       rightDriveMotor->run(FORWARD);
+    }
+    
+    //Acceleration
+    Serial.println("Accelerating");
+    for (i=0; i<fullSpeed; i++) {
+      leftDriveMotor->setSpeed(i);
+      rightDriveMotor->setSpeed(i);
+      Serial.print("Current dist acceleration: ");
+      Serial.println(currentDist);
+    }
+  
+    Serial.println("Constant movement");
+    //Constant speed whilst currentDist is less than distance
+    while(currentDist <= distance-brakeDistance) {
+      Serial.print("Current dist constant movement: ");
+      Serial.println(currentDist);
+     
+  
+    }
+    //Deceleration
+    Serial.println("Decelerating");
+    for (i=fullSpeed; i!=0; i--) {
+      Serial.print("Current dist decceleration: ");
+      Serial.println(currentDist);
+    }
+  
+    //Brake
+    Serial.println("Brake");
+    leftDriveMotor->run(RELEASE);
+    rightDriveMotor->run(RELEASE);
+    //delay(100);
   }
-
-  Serial.println("Constant movement");
-  //Constant speed whilst currentDist is less than distance
-  while(currentDist <= distance-brakeDistance) {
-    Serial.print("Current dist constant movement: ");
-    Serial.println(currentDist);
-   
-
-  }
-  //Deceleration
-  Serial.println("Decelerating");
-  for (i=fullSpeed; i!=0; i--) {
-    Serial.print("Current dist decceleration: ");
-    Serial.println(currentDist);
-  }
-
-  //Brake
-  Serial.println("Brake");
-  leftDriveMotor->run(RELEASE);
-  rightDriveMotor->run(RELEASE);
-  //delay(100);
 }
 
 void Robot::turn90(int rotation) { //positive for right negative for left
@@ -223,6 +250,7 @@ void setup()
   Robot r(0);
   r.begin();
   Serial.println("Set up complete");
+  r.process = 1;
   r.straightMovement(600);
   r.straightMovement(100);
   Serial.println();
@@ -230,7 +258,7 @@ void setup()
 
 void loop()
 {
-
+/*
   static Robot r(0);
   if (Serial.available()) {
 
@@ -239,6 +267,6 @@ void loop()
     Serial.println(byte_in);
     r.processCommand(byte_in);
   }
-  //delay(100);
+  //delay(100);*/
 
 }
