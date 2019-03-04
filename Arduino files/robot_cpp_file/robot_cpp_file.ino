@@ -5,6 +5,7 @@
 
 #include "Arduino.h"
 #include "Robot.h"
+#include <Servo.h>
 
 Robot::Robot(const byte whichISR) : whichISR (whichISR)
 {
@@ -12,7 +13,8 @@ Robot::Robot(const byte whichISR) : whichISR (whichISR)
   leftDriveMotor = AFMS.getMotor(1);
   rightDriveMotor = AFMS.getMotor(2);
   conveyorMotor = AFMS.getMotor(3);
-  gripperMotor = AFMS.getMotor(4);
+  Servo gripperServo;
+  gripperServo.attach(9); 
   Serial.begin(9600);
   AFMS.begin();
   optoPin = 2; //All interrupts pins chosen correctly (2,3,18,19,20,21)
@@ -178,6 +180,8 @@ void Robot::straightMovement(float distance) {
     //Deceleration
     Serial.println("Decelerating");
     for (i=fullSpeed; i!=0; i--) {
+      leftDriveMotor->setSpeed(i);
+      rightDriveMotor->setSpeed(i);
       Serial.print("Current dist decceleration: ");
       Serial.println(currentDist);
     }
@@ -190,58 +194,34 @@ void Robot::straightMovement(float distance) {
   }
 }
 
-void Robot::turn90(int rotation) { //positive for right negative for left
-  float turnDistance = 100; //NEED TO TEST THIS TO FIND HOW MANY ROTATIONS GIVE 90 degress 
-  uint8_t i; //used for incrementing speed for acceleration and deceleration
-  int turnSpeed = 100; //Maximum speed during turning
-  currentDist = 0; 
-  float brakeRotation = 200; //For stopping constant velocit and preparing to break
 
-  //if x is negative then we are moving backwards, if x positive -> forward
-  if(rotation < 0){
-    leftDriveMotor->run(FORWARD); //THESE NEED TO BE CHECKED FOR CORRECT DIR
-    rightDriveMotor->run(FORWARD);
+void Robot::gripBlock(){
+
+    //GETTING ROBOT POSITIONED ABOVE BLOCK 
+    uint8_t i; //used for incrementing speed for acceleration and deceleration
+    int getBlockSpeed = 100; //need to test this
+    Serial.println("Accelerating");
+    for (i=0; i<getBlockSpeed; i++) {
+      leftDriveMotor->setSpeed(i);
+      rightDriveMotor->setSpeed(i);
+      delay(5); //Need to test this
+
+    Serial.println("Decelerating"); 
+    for (i=getBlockSpeed; i!=0; i--) {
+      leftDriveMotor->setSpeed(i);
+      rightDriveMotor->setSpeed(i);
+      delay(5); //Need to test this
+    }
+    Serial.println("Brake");
+    leftDriveMotor->run(RELEASE);
+    rightDriveMotor->run(RELEASE);
+    delay(100);
   }
-  else if(rotation > 0){
-     leftDriveMotor->run(BACKWARD);//THESE NEED TO BE CHECKED FOR CORRECT DIR
-     rightDriveMotor->run(BACKWARD);
-  }
+
+  //GRIPPING BLOCK
+  //int startingPos 
+  //for(
   
-  //Acceleration
-  Serial.println("Accelerating");
-  for (i=0; i<turnSpeed; i++) {
-    leftDriveMotor->setSpeed(i);
-    rightDriveMotor->setSpeed(i);
-    distanceCalculator(); //Update distance since start of this command
-    Serial.print("Current dist acceleration: ");
-    Serial.println(currentDist);
-    //delay(5);
-  }
-
-  Serial.println("Constant movement");
-  //Constant speed whilst currentDist is less than distance
-  while(currentDist <= turnDistance - brakeRotation) {
-    distanceCalculator();
-    Serial.print("Current dist constant movement: ");
-    Serial.println(currentDist);
-    //delay(5);
-   
-
-  }
-  //Deceleration
-  Serial.println("Decelerating"); 
-  for (i=turnSpeed; i!=0; i--) {
-    distanceCalculator();
-    Serial.print("Current dist decceleration: ");
-    Serial.println(currentDist);
-    //delay(5);
-  }
-
-  //Brake
-  Serial.println("Brake");
-  leftDriveMotor->run(RELEASE);
-  rightDriveMotor->run(RELEASE);
-  delay(100);
 }
 
 void setup()
