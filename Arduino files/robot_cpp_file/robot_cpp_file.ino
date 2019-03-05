@@ -192,6 +192,57 @@ void Robot::straightMovement(float distance) {
   }
 }
 
+void Robot::rotate(float distance) { 
+  if(process == 1){
+    uint8_t i; //used for incrementing speed for acceleration and deceleration
+    int fullSpeed = 100;
+    currentDist = 0;
+    float brakeDistance = 300; //For stopping on path and preparing to break
+  
+    //if x is negative then we are moving backwards, if x positive -> forward
+    if(distance < 0){
+      leftDriveMotor->run(FORWARD);
+      rightDriveMotor->run(BACKWARD);
+    }
+    else if(distance > 0){
+       leftDriveMotor->run(BACKWARD);
+       rightDriveMotor->run(FORWARD);
+    }
+    
+    //Acceleration
+    Serial.println("Accelerating");
+    for (i=0; i<fullSpeed; i++) {
+      leftDriveMotor->setSpeed(i);
+      rightDriveMotor->setSpeed(i);
+      Serial.print("Current dist acceleration: ");
+      Serial.println(currentDist);
+    }
+  
+    Serial.println("Constant movement");
+    //Constant speed whilst currentDist is less than distance
+    while(currentDist <= distance-brakeDistance) {
+      Serial.print("Current dist constant movement: ");
+      Serial.println(currentDist);
+     
+  
+    }
+    //Deceleration
+    Serial.println("Decelerating");
+    for (i=fullSpeed; i!=0; i--) {
+      leftDriveMotor->setSpeed(i);
+      rightDriveMotor->setSpeed(i);
+      Serial.print("Current dist decceleration: ");
+      Serial.println(currentDist);
+    }
+  
+    //Brake
+    Serial.println("Brake");
+    leftDriveMotor->run(RELEASE);
+    rightDriveMotor->run(RELEASE);
+    //delay(100);
+  }
+}
+
 
 void Robot::gripBlock(){
 
@@ -314,7 +365,7 @@ void loop()
     r.loadConveyor();
     r.conveyorIncrement();
     r.blockNo += 1;
-    if(r.blockNo == 5){
+    if(r.blockNo == 5){ //are there a set number of non magnetic blocks
       r.process = 6; //go back to shelf
     }
     else{

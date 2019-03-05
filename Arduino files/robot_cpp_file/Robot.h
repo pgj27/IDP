@@ -21,6 +21,7 @@ class Robot
     void conveyorIncrement();
     void unloadConveyor();
     void straightMovement(float distance);
+    void rotate(float distance);
     void gripBlock();
     void turn90(int deg);
     String command;
