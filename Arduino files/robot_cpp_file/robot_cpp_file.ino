@@ -56,8 +56,11 @@ void Robot::isr2(){
 
 
 void Robot::distanceCalculator(){
+  //noInterrupts();
   float conversion = 19.634954; //a change in pulse corresponds to x distance NEED TO WORK OUT x
-    currentDist += conversion;
+  currentDist += conversion;
+  //delayMicroseconds(1000);
+  //interrupts();
 }
 
 void Robot::magnetDetection(){
@@ -119,18 +122,24 @@ void Robot::unloadConveyor()
 {
   uint8_t i;
   int unloadSpeed = 255;
+  int unloadTime = 50;
 
   //Accelerate
   conveyorMotor->run(BACKWARD);
   for (i=0; i<unloadSpeed; i++) {
     conveyorMotor->setSpeed(i);
+    delay(5);
+  }
+
+  for (i=0; i<unloadTime; i++) {
+    conveyorMotor->setSpeed(unloadSpeed);
     delay(100);
   }
   
   //Decelerate
   for (i=unloadSpeed; i!=0; i--) {
     conveyorMotor->setSpeed(i);
-    delay(10);
+    delay(5);
   }
   
   //Brake
@@ -144,9 +153,9 @@ void Robot::unloadConveyor()
 void Robot::straightMovement(float distance) { 
   if(process == 1){
     uint8_t i; //used for incrementing speed for acceleration and deceleration
-    int fullSpeed = 100;
+    int fullSpeed = 160;
     currentDist = 0;
-    float brakeDistance = 300; //For stopping on path and preparing to break
+    float brakeDistance = 35; //For stopping on path and preparing to break
   
     //if x is negative then we are moving backwards, if x positive -> forward
     if(distance < 0){
@@ -160,7 +169,7 @@ void Robot::straightMovement(float distance) {
     
     //Acceleration
     Serial.println("Accelerating");
-    for (i=0; i<fullSpeed; i++) {
+    for (i=0; i<fullSpeed; i+=5) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
       Serial.print("Current dist acceleration: ");
@@ -177,7 +186,7 @@ void Robot::straightMovement(float distance) {
     }
     //Deceleration
     Serial.println("Decelerating");
-    for (i=fullSpeed; i!=0; i--) {
+    for (i=fullSpeed; i!=0; i-= fullSpeed/8) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
       Serial.print("Current dist decceleration: ");
@@ -197,7 +206,7 @@ void Robot::rotate(float distance) {
     uint8_t i; //used for incrementing speed for acceleration and deceleration
     int fullSpeed = 100;
     currentDist = 0;
-    float brakeDistance = 300; //For stopping on path and preparing to break
+    float brakeDistance = 50; //For stopping on path and preparing to break
   
     //if x is negative then we are moving backwards, if x positive -> forward
     if(distance < 0){
@@ -279,20 +288,27 @@ void Robot::gripBlock(){
 void Robot::loadConveyor(){
 
   //ROTATE GRIPPER ARM
+  Serial.println("Moving up");
   uint8_t i;
-  int rotateSpeed = 170; //this may be different for returning arm
+  int rotateSpeed = 255; //this may be different for returning arm
+  int rotateTime = 40;
   gripperMotor->run(FORWARD);
   for (i=0; i<rotateSpeed; i++) {
-    conveyorMotor->setSpeed(i);
-    delay(10); 
+    gripperMotor->setSpeed(i);
+    delay(5); 
+  }
+  
+    for (i=0; i<rotateTime; i++) {
+    gripperMotor->setSpeed(rotateSpeed);
+    delay(100); 
   }
 
+
   for (i=rotateSpeed; i!=0; i--) {
-    conveyorMotor->setSpeed(i);
-    delay(10);
+    gripperMotor->setSpeed(i);
+    delay(5);
   }
-  conveyorMotor->run(RELEASE); //Need to test how to pause the gripper arm
-  delay(100);
+  gripperMotor->run(RELEASE); //Need to test how to pause the gripper arm
 
   //RELEASE BLOCK
   int pos;
@@ -302,17 +318,23 @@ void Robot::loadConveyor(){
    }
    
  //ROTATE GRIPPER ARM
+ Serial.println("Moving back");
   gripperMotor->run(BACKWARD);
   for (i=0; i<rotateSpeed; i++) {
-    conveyorMotor->setSpeed(i);
-    delay(10); 
+    gripperMotor->setSpeed(i);
+    delay(5); 
+  }
+  
+  for (i=0; i<rotateTime; i++) {
+    gripperMotor->setSpeed(rotateSpeed);
+    delay(100); 
   }
 
   for (i=rotateSpeed; i!=0; i--) {
-    conveyorMotor->setSpeed(i);
-    delay(10);
+    gripperMotor->setSpeed(i);
+    delay(5);
   }
-  conveyorMotor->run(RELEASE);
+  gripperMotor->run(RELEASE);
 }
 
 void Robot::releaseBlock(){ //BLOCK SHOULD BE ABLE TO PASS UNDER WITHOUT MOVING ARM
@@ -333,9 +355,10 @@ void setup()
   r.begin();
   Serial.println("Set up complete");
   r.process = 1;
-  r.straightMovement(100);
-  r.straightMovement(-100);
-  Serial.println();
+  //delay(1000*10);
+  r.straightMovement(600);
+  r.straightMovement(-600);
+  
 }
 
 void loop()

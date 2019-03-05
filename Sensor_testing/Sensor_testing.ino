@@ -10,7 +10,7 @@ void setup() {
   Serial.begin(9600);
   pinMode(hallPin, INPUT_PULLUP);
   pinMode(blockDetPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(hallPin), magnetDetection, RISING);
+  attachInterrupt(digitalPinToInterrupt(hallPin), magnetDetection, CHANGE);
   attachInterrupt(digitalPinToInterrupt(blockDetPin), blockDetection, RISING);
 }
 
@@ -84,8 +84,11 @@ void blockDetection(){
 }
 
 void magnetDetection(){
+     //noInterrupts();
      process = 4;
      Serial.println("Magnet detected");
+     //delayMicroseconds(1000); 
+     //interrupts();
      /*as this is called the gripper will be gripping the block, 
       so if it is activated the gripper must release the block
      */
