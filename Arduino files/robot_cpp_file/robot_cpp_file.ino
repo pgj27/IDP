@@ -169,7 +169,7 @@ void Robot::straightMovement(float distance) {
   
     Serial.println("Constant movement");
     //Constant speed whilst currentDist is less than distance
-    while(currentDist <= distance-brakeDistance) {
+    while(currentDist <= abs(distance)-brakeDistance) {
       Serial.print("Current dist constant movement: ");
       Serial.println(currentDist);
      
@@ -325,20 +325,22 @@ void Robot::releaseBlock(){ //BLOCK SHOULD BE ABLE TO PASS UNDER WITHOUT MOVING 
 }
 
 
-Robot r(0);
+
 
 void setup()
 {
+  Robot r(0);
   r.begin();
   Serial.println("Set up complete");
   r.process = 1;
-  r.straightMovement(600);
   r.straightMovement(100);
+  r.straightMovement(-100);
   Serial.println();
 }
 
 void loop()
 {
+  /*
   if(r.process == 0){
     //instructions for planning first route (this may all be moved to setup)
     r.process =1;
@@ -391,7 +393,7 @@ void loop()
 
   
   
-  
+  */
 
 
   
