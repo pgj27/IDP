@@ -15,7 +15,7 @@ class Robot
 
   public:
     Robot();
-    void processCommand(char byte_in);
+    short processCommand(char byte_in);
     void loadConveyor();
     void releaseBlock();
     void conveyorIncrement();
@@ -24,7 +24,6 @@ class Robot
     void rotate(float distance);
     void gripBlock();
     void turn90(int deg);
-    String command;
     Robot (const byte which);
     void begin ();
     volatile float currentDist;

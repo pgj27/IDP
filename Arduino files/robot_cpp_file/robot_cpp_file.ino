@@ -7,6 +7,8 @@
 #include "Robot.h"
 #include <Servo.h>
 
+bool setup_done = false;
+
 Robot::Robot(const byte whichISR) : whichISR (whichISR)
 {
   AFMS = Adafruit_MotorShield();
@@ -70,15 +72,14 @@ void Robot::blockDetection(){
 
 
 
-void Robot::processCommand(char byte_in)
+short Robot::processCommand(char byte_in)
 {
   if (byte_in == CMD_START){
 
-    Serial.print("Got command: ");
+    Serial.println("Got command");
     while (!Serial.available())
       delay(10);
     byte_in = Serial.read();
-    Serial.println(byte_in);
 
     if (byte_in == CMD_FORWARD) {
       unsigned char byte_1 = Serial.read();
@@ -89,7 +90,7 @@ void Robot::processCommand(char byte_in)
       dist += byte_1;
       Serial.print("Forward distance: ");
       Serial.println(dist);
-      this->straightMovement(dist);
+      return dist;
     }
     else
       Serial.println("Unknown command");
@@ -324,34 +325,40 @@ void Robot::releaseBlock(){ //BLOCK SHOULD BE ABLE TO PASS UNDER WITHOUT MOVING 
    }
 }
 
-
-
-
 void setup()
 {
-  Robot r(0);
-  r.begin();
-  Serial.println("Set up complete");
-  r.process = 1;
-  r.straightMovement(100);
-  r.straightMovement(-100);
+  Serial.println("AAA");
+
+  //r.straightMovement(100);
+  //r.straightMovement(-100);
   Serial.println();
 }
 
 void loop()
 {
-  /*
+  static Robot r(0);
+  if (!setup_done) {
+    r.begin();
+    Serial.println("Set up complete");
+    r.process = 1;
+    setup_done = true;
+  }
+
   if(r.process == 0){
     //instructions for planning first route (this may all be moved to setup)
-    r.process =1;
+    r.process = 1;
   }
 
   else if(r.process == 1){
     //here we pring out coordinates for rotating and straightmovement
-    r.straightMovement(100); //an example
-    if(r.process == 1) {
-      r.process = 5; //if block not found revert to 5 and re-route
+    if (Serial.available()) {
+      short dist = r.processCommand(Serial.read());
+      Serial.print("Distance received: ");
+      Serial.println(dist);
     }
+    //if(r.process == 1) {
+    //  r.process = 5; //if block not found revert to 5 and re-route
+    //}
   }
   
   //Block has been detected
@@ -390,11 +397,6 @@ void loop()
     //instructions to get back to shelf
     r.unloadConveyor();
   }
-
-  
-  
-  */
-
 
   
 /*
