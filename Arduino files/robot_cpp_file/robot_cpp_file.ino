@@ -19,9 +19,9 @@ Robot::Robot(const byte whichISR) : whichISR (whichISR)
   gripperServo.attach(9); 
   Serial.begin(9600);
   AFMS.begin();
-  optoPin = 2; //All interrupts pins chosen correctly (2,3,18,19,20,21)
-  hallPin = 3;
-  blockdetecPin = 18;
+  optoPin = 18; //All interrupts pins chosen correctly (2,3,18,19,20,21)
+  hallPin = 2;
+  blockdetecPin = 3;
   pinMode(optoPin, INPUT_PULLUP);
   pinMode(hallPin, INPUT_PULLUP);
   pinMode(blockdetecPin, INPUT_PULLUP);
@@ -264,6 +264,7 @@ void Robot::gripBlock(){
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
       delay(5); //Need to test this
+    }
 
     Serial.println("Decelerating"); 
     for (i=getBlockSpeed; i!=0; i--) {
@@ -271,14 +272,16 @@ void Robot::gripBlock(){
       rightDriveMotor->setSpeed(i);
       delay(5); //Need to test this
     }
+    
     Serial.println("Brake");
     leftDriveMotor->run(RELEASE);
     rightDriveMotor->run(RELEASE);
     delay(100);
-  }
+  
 
   //GRIPPING BLOCK
   int pos;
+  Serial.println("Gripping");
   for(pos = startingPos; pos <= gripPos; pos += 1){ 
     gripperServo.write(pos);
     delay(5);
@@ -292,9 +295,9 @@ void Robot::loadConveyor(){
   Serial.println("Moving up");
   uint8_t i;
   int rotateSpeed = 255; //this may be different for returning arm
-  int rotateTime = 40;
+  int rotateTime = 60;
   gripperMotor->run(FORWARD);
-  for (i=0; i<rotateSpeed; i++) {
+  for (i=0; i<rotateSpeed; i+=5) {
     gripperMotor->setSpeed(i);
     delay(5); 
   }
@@ -305,7 +308,7 @@ void Robot::loadConveyor(){
   }
 
 
-  for (i=rotateSpeed; i!=0; i--) {
+  for (i=rotateSpeed; i!=0; i-=5) {
     gripperMotor->setSpeed(i);
     delay(5);
   }
@@ -321,7 +324,7 @@ void Robot::loadConveyor(){
  //ROTATE GRIPPER ARM
  Serial.println("Moving back");
   gripperMotor->run(BACKWARD);
-  for (i=0; i<rotateSpeed; i++) {
+  for (i=0; i<rotateSpeed; i+=5) {
     gripperMotor->setSpeed(i);
     delay(5); 
   }
@@ -331,7 +334,7 @@ void Robot::loadConveyor(){
     delay(100); 
   }
 
-  for (i=rotateSpeed; i!=0; i--) {
+  for (i=rotateSpeed; i!=0; i-=5) {
     gripperMotor->setSpeed(i);
     delay(5);
   }
@@ -362,29 +365,34 @@ void loop()
   if (!setup_done) {
     r.begin();
     Serial.println("Set up complete");
-    r.process = 1;
+    r.process = 0;
     setup_done = true;
   }
 
   if(r.process == 0){
+    Serial.println("Routing");
     //instructions for planning first route (this may all be moved to setup)
     r.process = 1;
   }
 
   else if(r.process == 1){
     //here we pring out coordinates for rotating and straightmovement
-    if (Serial.available()) {
+    Serial.println("Following path");
+    /*if (Serial.available()) {
       short dist = r.processCommand(Serial.read());
       Serial.print("Distance received: ");
-      Serial.println(dist);
+      Serial.println(dist); */
+      delay(1000);
+      
     }
     //if(r.process == 1) {
     //  r.process = 5; //if block not found revert to 5 and re-route
-    //}
-  }
+    
+  //}
   
   //Block has been detected
   else if(r.process == 2){
+    Serial.println("Moving over block");
     r.gripBlock();
     if(r.process == 2) {
       r.process = 3; //if magnet not detected go on to process 3
@@ -393,9 +401,12 @@ void loop()
 
   //Magnet not detected
   else if(r.process == 3){
+    Serial.println("Loading block");
     r.loadConveyor();
     r.conveyorIncrement();
     r.blockNo += 1;
+    Serial.print(r.blockNo);
+    Serial.println(" blocks");
     if(r.blockNo == 5){ //are there a set number of non magnetic blocks
       r.process = 6; //go back to shelf
     }
@@ -406,18 +417,22 @@ void loop()
 
   //Magnet detected
   else if(r.process == 4){
+    Serial.println("Releasing magnetic block");
     r.releaseBlock();
     r.process = 1; //if all instructions printed at once else to 5/0 and re-route
   }
 
   else if(r.process == 5){
+    Serial.println("Re-routing");
     //instructions to re-route (this may be done under 1)
     r.process = 1;
   }
 
   else if(r.process == 6){
+    Serial.println("Unloading conveyor");
     //instructions to get back to shelf
     r.unloadConveyor();
+    r.process =1;
   }
 
   
