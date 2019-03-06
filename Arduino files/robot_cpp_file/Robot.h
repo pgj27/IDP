@@ -2,7 +2,8 @@
 #define Robot_h
 #define CMD_START 99
 #define CMD_FORWARD 102
-#define CMD_END 101
+#define CMD_STEERING 115
+#define CMD_ROTATE 114
 
 #include "Arduino.h"
 #include "Wire.h"
@@ -15,13 +16,13 @@ class Robot
 
   public:
     Robot();
-    short processCommand(char byte_in);
+    short processCommand(char byte_in, char request);
     void loadConveyor();
     void releaseBlock();
     void conveyorIncrement();
     void unloadConveyor();
-    void straightMovement(float distance);
-    void rotate(float distance);
+    void straightMovement(short distance);
+    void rotate(short distance);
     void gripBlock();
     void turn90(int deg);
     Robot (const byte which);
