@@ -295,7 +295,7 @@ void Robot::loadConveyor(){
   Serial.println("Moving up");
   uint8_t i;
   int rotateSpeed = 255; //this may be different for returning arm
-  int rotateTime = 60;
+  int rotateTime = 40;
   gripperMotor->run(FORWARD);
   for (i=0; i<rotateSpeed; i+=5) {
     gripperMotor->setSpeed(i);
@@ -376,23 +376,38 @@ void loop()
   }
 
   else if(r.process == 1){
-    //here we pring out coordinates for rotating and straightmovement
     Serial.println("Following path");
+    delay(1000);
+
+    /*r.currentDist = 0;
+      while(r.currentDist <= 100){
+        if(r.process ==1){
+          Serial.println(r.currentDist);
+          delay(1000);
+        }
+        else{
+          break;
+        }
+      } */
+    //here we printing out coordinates for rotating and straightmovement
+    
     /*if (Serial.available()) {
       short dist = r.processCommand(Serial.read());
       Serial.print("Distance received: ");
       Serial.println(dist); */
-      delay(1000);
       
-    }
-    //if(r.process == 1) {
-    //  r.process = 5; //if block not found revert to 5 and re-route
+      
     
-  //}
+    if(r.process == 1) {
+      r.process = 5; //if block not found revert to 5 and re-route
+    }
+  }
+  
   
   //Block has been detected
   else if(r.process == 2){
     Serial.println("Moving over block");
+    //delay(1000); //comment this out (just for testing)
     r.gripBlock();
     if(r.process == 2) {
       r.process = 3; //if magnet not detected go on to process 3
