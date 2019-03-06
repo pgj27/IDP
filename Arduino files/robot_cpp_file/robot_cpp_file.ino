@@ -16,10 +16,10 @@ Robot::Robot(const byte whichISR) : whichISR (whichISR)
   rightDriveMotor = AFMS.getMotor(2);
   conveyorMotor = AFMS.getMotor(3);
   gripperMotor = AFMS.getMotor(4);
-  gripperServo.attach(9); 
+  gripperServo.attach(10); 
   Serial.begin(9600);
   AFMS.begin();
-  optoPin = 18; //All interrupts pins chosen correctly (2,3,18,19,20,21)
+  optoPin = 19; //All interrupts pins chosen correctly (2,3,18,19,20,21)
   hallPin = 2;
   blockdetecPin = 3;
   pinMode(optoPin, INPUT_PULLUP);
@@ -117,7 +117,6 @@ void Robot::conveyorIncrement()
   }
 
   conveyorMotor->run(RELEASE);
-  delay(100);
 }
 
 void Robot::unloadConveyor()
@@ -155,7 +154,7 @@ void Robot::unloadConveyor()
 void Robot::straightMovement(short distance) { 
   if(process == 1){
     uint8_t i; //used for incrementing speed for acceleration and deceleration
-    int fullSpeed = 160;
+    int fullSpeed = 200;
     currentDist = 0;
     float brakeDistance = 35; //For stopping on path and preparing to break
   
@@ -179,28 +178,31 @@ void Robot::straightMovement(short distance) {
     }
   
     Serial.println("Constant movement");
+
     //Constant speed whilst currentDist is less than distance
-    while(currentDist <= abs(distance)-brakeDistance) {
+    while(currentDist <= abs(distance)-brakeDistance and process == 1) {
+    Serial.print("Current dist constant movement: ");
+    Serial.println(currentDist);
       short steering = 0;
       //while (!Serial.available())
         //delay(0.01);
-      if (Serial.available())
-        steering = this->processCommand(Serial.read(), CMD_STEERING);
-      leftDriveMotor->setSpeed(fullSpeed / 2 + steering / 100);
-      rightDriveMotor->setSpeed(fullSpeed / 2 - steering / 100);
-      Serial.println("Steering command");
+      //if (Serial.available())
+        //steering = this->processCommand(Serial.read(), CMD_STEERING);
+      //leftDriveMotor->setSpeed(fullSpeed / 2 + steering / 100);
+      //rightDriveMotor->setSpeed(fullSpeed / 2 - steering / 100);
+      /*Serial.println("Steering command");
       Serial.println(steering);
       Serial.print("Left motor speed: ");
       Serial.print(fullSpeed / 2 + steering / 100);
       Serial.print(", Right motor speed: ");
       Serial.println(fullSpeed / 2 - steering / 100);
       //Serial.print("Current dist constant movement: ");
-      //Serial.println(currentDist);
+      //Serial.println(currentDist);*/
     }
 
     //Deceleration
     Serial.println("Decelerating");
-    for (i=fullSpeed; i!=0; i-= fullSpeed/8) {
+    for (i=fullSpeed; i!=0; i-= 10) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
       Serial.print("Current dist decceleration: ");
@@ -220,7 +222,7 @@ void Robot::rotate(short distance) {
     uint8_t i; //used for incrementing speed for acceleration and deceleration
     int fullSpeed = 100;
     currentDist = 0;
-    float brakeDistance = 50; //For stopping on path and preparing to break
+    float brakeDistance = 5; //For stopping on path and preparing to break
   
     //if x is negative then we are moving backwards, if x positive -> forward
     if(distance < 0){
@@ -234,7 +236,7 @@ void Robot::rotate(short distance) {
     
     //Acceleration
     Serial.println("Accelerating");
-    for (i=0; i<fullSpeed; i++) {
+    for (i=0; i<fullSpeed; i+=10) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
       Serial.print("Current dist acceleration: ");
@@ -243,7 +245,7 @@ void Robot::rotate(short distance) {
   
     Serial.println("Constant movement");
     //Constant speed whilst currentDist is less than distance
-    while(currentDist <= distance-brakeDistance) {
+    while(currentDist <= abs(distance)-brakeDistance) {
       Serial.print("Current dist constant movement: ");
       Serial.println(currentDist);
      
@@ -251,7 +253,7 @@ void Robot::rotate(short distance) {
     }
     //Deceleration
     Serial.println("Decelerating");
-    for (i=fullSpeed; i!=0; i--) {
+    for (i=fullSpeed; i!=0; i-=10) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
       Serial.print("Current dist decceleration: ");
@@ -299,6 +301,7 @@ void Robot::gripBlock(){
     gripperServo.write(pos);
     delay(5);
   }
+  delay(2000); //this is for stabalising the hall effect and finding a value
   
 }
 
@@ -386,26 +389,37 @@ void loop()
 
   else if(r.process == 1){
     Serial.println("Following path");
+    //delay(5000);
+    r.straightMovement(600);
     
-    //r.straightMovement(100);
-    //r.straightMovement(-100);
-    r.rotate(50);
-    if (Serial.available()) {
+    r.rotate(160);
+    
+    r.straightMovement(300);
+    
+    r.rotate(160);
+    
+    r.straightMovement(600);
+    
+    r.rotate(160);
+    
+    r.straightMovement(300);
+    
+    r.rotate(160);
+    
+    
+    /*if (Serial.available()) {
       short dist = r.processCommand(Serial.read(), CMD_FORWARD);
       Serial.println("Distance received");
       Serial.println(dist);
       r.straightMovement(dist);
       delay(1000);
       
-    }
+    }*/
   
-    //if(r.process == 1) {
-    //  r.process = 5; //if block not found revert to 5 and re-route
-    //}
+    if(r.process == 1) {
+      r.process = 5; //if block not found revert to 5 and re-route
+    }
   }
-
-    
-
   
   
   
