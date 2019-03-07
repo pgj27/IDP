@@ -10,7 +10,7 @@ void setup() {
   Serial.begin(9600);
   pinMode(hallPin, INPUT_PULLUP);
   pinMode(blockDetPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(hallPin), magnetDetection, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(hallPin), magnetDetection, RISING);
   attachInterrupt(digitalPinToInterrupt(blockDetPin), blockDetection, RISING);
 }
 
