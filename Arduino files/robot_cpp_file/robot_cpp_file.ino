@@ -20,8 +20,8 @@ Robot::Robot(const byte whichISR) : whichISR (whichISR)
   Serial.begin(9600);
   AFMS.begin();
   optoPin = 19; //All interrupts pins chosen correctly (2,3,18,19,20,21)
-  hallPin = 2;
-  blockdetecPin = 3;
+  hallPin = 3;
+  blockdetecPin = 2;
   pinMode(optoPin, INPUT_PULLUP);
   pinMode(hallPin, INPUT_PULLUP);
   pinMode(blockdetecPin, INPUT_PULLUP);

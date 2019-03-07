@@ -53,7 +53,7 @@ class Robot
     int hallPin; //Hall effect sensor pin (input)
     int blockdetecPin; //Block detector pin (input)
     int gripperServoPin; //Pin to gripper servo (output)
-    int startingPos = 19; //for gripping block
+    int startingPos = 19; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
     int gripPos = 100;    //for gripping block
 
 };
