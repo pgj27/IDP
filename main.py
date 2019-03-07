@@ -1,54 +1,16 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import cv2
+import serial
+import time
+import struct
 
 
 class RobotControl:
     conts = []
     mask = []
-
-    def plan_path(self, grid):
-        to_visit = [[0,0]]
-        num_nodes = 1
-        for i in range(len(grid)):
-            for j in range(len(grid[i])):
-                if grid[i][j] == 1:
-                    to_visit.append([i,j])
-                    num_nodes += 1
-    
-        weights = np.zeros((num_nodes, num_nodes), dtype=int)
-        for i in range(num_nodes):
-            for j in range(num_nodes):
-                weights[i][j] = abs(to_visit[i][0] - to_visit[j][0]) + abs(to_visit[i][1] - to_visit[j][1])
-                if i == j:
-                    weights[i][j] = 1000
-    
-        route = [[0, 0]]
-        pos = 0
-        for i in range(num_nodes-1):
-            next = np.argmin(weights[pos])
-            print("Closest point to {} is {} (distance: {})".format(pos, next, weights[pos, next]))
-            xstart = to_visit[pos][1]
-            ystart = to_visit[pos][0]
-            xend = to_visit[next][1]
-            yend = to_visit[next][0]
-            if xstart > xend:
-                xend = xstart+1
-                xstart = to_visit[next][1]+1
-            if ystart > yend:
-                yend = ystart+1
-                ystart = to_visit[next][0]+1
-            print("{}, {} to {}, {}".format(xstart, ystart, xend, yend))
-            grid[ystart:yend, to_visit[pos][1]] += 0.1
-            grid[to_visit[next][0], xstart:xend] += 0.1
-            weights[:, pos] = 1000
-            pos = next
-            route.append(to_visit[pos])
-        route.append([0, 0])
-        print(route)
-    
-        plt.matshow(grid)
-        plt.show()
+    pos = (500, 400)
+    cells = []
+    ser = serial.Serial('/dev/ttyACM0', 9600)
 
     def find_line(self, conts):
         min_x = 1000
@@ -82,7 +44,7 @@ class RobotControl:
         for i in range(len(line_y)-1):
             sum += line_y[i] - line_y[i+1]
         scale = sum / (15 * (len(line_y)-1))
-        #print("scale is {} pixels/cm".format(scale))
+        print("scale is {} pixels/cm".format(scale))
         return scale
 
     def process_first_frame(self, img):
@@ -105,32 +67,81 @@ class RobotControl:
             if len(conts[i]) < lengthLower:
                 to_remove.append(i)
         conts = np.delete(conts, to_remove, 0)
-    
-        # Generate grid to store cell locations
-        scale = self.find_line(conts)
-        grid_scale = 3 * scale
-        grid = np.zeros(((int(img.shape[0] / grid_scale)), int(img.shape[1] / grid_scale)))
-        print(grid.shape)
-        #print("Cells found at: ")
-        for i in range(len(conts)):
-            xi = int(conts[i][0][0][0] / grid_scale + 1)
-            yi = int(conts[i][0][0][1] / grid_scale + 1)
-            #print("{}, {}".format(xi, yi))
-            grid[yi, xi] = 1 # numpy arrays are row-col
-    
-        self.plan_path(grid)
+
+        # Store cell locations
+        print("Found {} cells:".format(len(conts)))
+        for c in conts:
+            self.cells.append(c[0][0])
+            print(c[0][0])
     
         return conts, maskFinal
 
     def find_robot(self, img):
-        return 0
+        # Set parameters to filter for robot
+        lowerBoundMarking = np.array([0, 100, 0])
+        upperBoundMarking = np.array([255, 255, 255])
+        lowerBoundBody = np.array([0, 0, 230])
+        upperBoundBody = np.array([255, 20, 255])
+        kernelOpen = np.ones((2, 2))
+        kernelClose = np.ones((10, 10))
+        lengthUpper = 120
+        lengthLower = 70
 
-    def send_command(self, command):
-        # send a command over serial
-        # wait for a response
-        # find robot
-        # check position is as expected
-        # if not re-plan route
+        # Filter points
+        maskBody = cv2.inRange(img, lowerBoundBody, upperBoundBody)
+        maskBodyOpen = cv2.morphologyEx(maskBody, cv2.MORPH_OPEN, kernelOpen)
+        maskBodyClose = cv2.morphologyEx(maskBodyOpen, cv2.MORPH_CLOSE, kernelClose)
+        maskMarking = cv2.inRange(img, lowerBoundMarking, upperBoundMarking)
+        maskMarkingOpen = cv2.morphologyEx(maskMarking, cv2.MORPH_OPEN, kernelOpen)
+        maskMarkingClose = cv2.morphologyEx(maskMarkingOpen, cv2.MORPH_CLOSE, kernelClose)
+        maskFinal = np.uint8((0.5 * maskMarkingClose + 0.5 * maskBodyClose) / 255)
+        conts, h = cv2.findContours(maskFinal.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        """to_remove = []
+        for i in range(len(conts)):
+            if len(conts[i]) < lengthLower or len(conts[i]) > lengthUpper or np.linalg.norm(conts[0][int(len(conts[0])/2)] - self.pos) > 150:
+                to_remove.append(i)
+        conts = np.delete(conts, to_remove, 0)"""
+
+        # If robot is found, update position to average point location
+        if len(conts) > 0:
+            x_sum = 0
+            y_sum = 0
+            sum = 0
+            for c in conts:
+                x_sum += c[0][0][0]
+                y_sum += c[0][0][1]
+                sum += 1
+            pos = (x_sum / sum, y_sum / sum)
+            print("pos: {}".format(pos))
+
+        return conts, 255 * maskFinal
+
+    def wait_for_message(self, msg):
+        line = self.ser.readline()
+        while line != msg:
+            print("Waiting for {}, heard {}".format(msg. line))
+            time.sleep(0.01)
+            line = self.ser.readline()
+
+    def send_command(self, command, param):
+        ready = b'Following path\r\n'
+        received = b'Command received\r\n'
+        finish = b'Finished moving\r\n'
+
+        self.wait_for_message(ready)
+
+        line = self.ser.readline()
+        while line != received:
+            self.ser.write(str.encode(command))
+            self.ser.write(struct.pack("h", param))
+            print("Sent {}: {}".format(command, param))
+            print("heard: {}".format(str(line, 'utf-8', errors='ignore')))
+            time.sleep(0.1)
+            line = self.ser.readline()
+        print("Sent command successfully")
+
+        self.wait_for_message(finish)
+        print("Executed command successfully")
         return 0
 
     def capture_frame(self):
@@ -140,38 +151,51 @@ class RobotControl:
             return ret
     
         # Our operations on the frame come here
+        frame = cv2.resize(frame, (640, 480))
         frameHSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
         # Display the resulting frame
         cv2.imshow('h',frameHSV[:,:,0])
         cv2.imshow('s',frameHSV[:,:,1])
         cv2.imshow('v',frameHSV[:,:,2])
-    
+
         # Do first frame processing
         if self.first_frame:
             self.first_frame = False
             self.conts, self.mask = self.process_first_frame(frameHSV)
+
+        # Find robot
+        self.conts, self.mask = self.find_robot(frameHSV)
     
-        # Show locations of cells
+        # Show robot position and corresponding points
         cv2.drawContours(frame, self.conts, -1, (255, 0, 0), 3)
+        cv2.circle(frame, self.pos, 20, (0, 255, 0), 3)
+        # Show filtered mask (for robot)
         cv2.imshow("mask", self.mask)
+        # Display camera frame with overlay
         cv2.imshow("cam", frame)
+
         return ret
 
     def __init__(self, cam):
         self.cap = cv2.VideoCapture(cam)
         self.first_frame = True
-        while(True):
+        self.send_command("cr", 100)
+        self.send_command("cf", 100)
+        self.send_command("cf", -100)
+        """while True:
             if self.cap.isOpened():
+                # Capture frame and process, break if no frame available
                 ret = self.capture_frame()
                 if ret == 0:
                     break
 
+            # Close program when q pressed
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                break"""
 
 
 rc = RobotControl("/home/philip/Videos/Webcam/table-3_2.webm")
-#rc = RobotControl(0)
+#rc = RobotControl(1)
 rc.cap.release()
 cv2.destroyAllWindows()

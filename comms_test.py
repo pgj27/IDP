@@ -5,12 +5,14 @@ import numpy as np
 
 ser = serial.Serial('/dev/ttyACM0', 9600)
 
+
 def wait_for_message(msg):
     line = ser.readline()
     while(line != msg):
         print("heard: {}".format(str(line, 'utf-8', errors='ignore')))
         time.sleep(0.1)
         line = ser.readline()
+
 
 while True:
     ready_for_path = b'Following path\r\n'

@@ -16,7 +16,7 @@ class Robot
 
   public:
     Robot();
-    short processCommand(char byte_in, char request);
+    short processCommand(char byte_in);
     void loadConveyor();
     void releaseBlock();
     void conveyorIncrement();
@@ -33,6 +33,8 @@ class Robot
                           //1 = following route, 2 = positioning above block and gripping, 3 = storing block on conveyor
                           //4 = releasing a magnetic block, 5 = scanning and re-routing, 6 = unloading
     int blockNo; //for storing the value of blocks stored on the robot
+    bool waitingDist;
+    bool waitingRot; // Used when waiting for commands
     
   private:
     static void isr0(); //intermediate ISRs for directing to actual ISRs
