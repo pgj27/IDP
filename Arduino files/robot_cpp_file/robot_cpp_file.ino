@@ -28,6 +28,8 @@ Robot::Robot(const byte whichISR) : whichISR (whichISR)
   currentDist = 0;
   process = 0;
   blockNo = 0;
+  waitingDist = false;
+  waitingRot = false;
 }
 
 void Robot::begin(){
@@ -74,30 +76,25 @@ void Robot::blockDetection(){
 }
 
 
-short Robot::processCommand(char byte_in, char request)
+short Robot::processCommand(char byte_in)
 {
   if (byte_in == CMD_START) {
     //Serial.println("Got command");
     while (!Serial.available())
       delay(10);
     byte_in = Serial.read();
-
-    //Serial.print("Byte in / Request: ");
-    //Serial.print(byte_in);
-    //Serial.println(request);
-    while (byte_in != request) {
-      byte_in = Serial.read();
-    }
-    if (byte_in == request) {
-      unsigned char byte_1 = Serial.read();
-      char byte_2 = Serial.read();
-      short data;
-      data = byte_2;
-      data <<= 8;
-      data += byte_1;
-      return data;
-    }
-    return 0;
+    if (byte_in == CMD_FORWARD)
+      waitingDist = false;
+    else if (byte_in == CMD_ROTATE)
+      waitingRot = false;
+    unsigned char byte_1 = Serial.read();
+    char byte_2 = Serial.read();
+    short data;
+    data = byte_2;
+    data <<= 8;
+    data += byte_1;
+    Serial.println("Distance received");
+    return data;
   }
 }
 
@@ -185,7 +182,7 @@ void Robot::straightMovement(short distance) {
       //while (!Serial.available())
         //delay(0.01);
       if (Serial.available())
-        steering = this->processCommand(Serial.read(), CMD_STEERING);
+        steering = this->processCommand(Serial.read());
       leftDriveMotor->setSpeed(fullSpeed / 2 + steering / 100);
       rightDriveMotor->setSpeed(fullSpeed / 2 - steering / 100);
       Serial.println("Steering command");
@@ -385,19 +382,19 @@ void loop()
   }
 
   else if(r.process == 1){
+    r.waitingDist = true;
+    r.waitingRot = true;
+    short dist = 0;
+    short rot = 0;
     //here we pring out coordinates for rotating and straightmovement
     Serial.println("Following path");
-    //r.straightMovement(100);
-    //r.straightMovement(-100);
-    r.rotate(50);
-    if (Serial.available()) {
-      short dist = r.processCommand(Serial.read(), CMD_FORWARD);
-      Serial.println("Distance received");
-      Serial.println(dist);
-      r.straightMovement(dist);
-      delay(1000);
-      
+    while (r.waitingDist || r.waitingRot) {
+      if (Serial.available())
+        r.processCommand(Serial.read());
     }
+    r.rotate(rot);
+    r.straightMovement(dist);
+    delay(1000);
   }
     //if(r.process == 1) {
     //  r.process = 5; //if block not found revert to 5 and re-route
@@ -448,17 +445,5 @@ void loop()
     r.unloadConveyor();
     r.process =1;
   }
-
-  
-/*
-  static Robot r(0);
-  if (Serial.available()) {
-
-    char byte_in = Serial.read();
-    Serial.print("Got byte: ");
-    Serial.println(byte_in);
-    r.processCommand(byte_in);
-  }
-  //delay(100);*/
 
 }
