@@ -8,9 +8,9 @@ import struct
 class RobotControl:
     conts = []
     mask = []
-    pos = (500, 400)
+    pos = (0, 0)
     cells = []
-    ser = serial.Serial('/dev/ttyACM0', 9600)
+    #ser = serial.Serial('/dev/ttyACM0', 9600)
 
     def find_line(self, conts):
         min_x = 1000
@@ -78,29 +78,31 @@ class RobotControl:
 
     def find_robot(self, img):
         # Set parameters to filter for robot
-        lowerBoundMarking = np.array([0, 100, 0])
-        upperBoundMarking = np.array([255, 255, 255])
-        lowerBoundBody = np.array([0, 0, 230])
-        upperBoundBody = np.array([255, 20, 255])
+        lowerBoundMarking = np.array([0, 50, 200])
+        upperBoundMarking = np.array([15, 255, 255])
+        lowerBoundBody = np.array([10, 0, 230])
+        upperBoundBody = np.array([50, 30, 255])
         kernelOpen = np.ones((2, 2))
-        kernelClose = np.ones((10, 10))
-        lengthUpper = 120
-        lengthLower = 70
+        kernelCloseBody = np.ones((15, 15))
+        kernelCloseMarking = np.ones((5, 5))
+        lengthLower = 30
 
         # Filter points
         maskBody = cv2.inRange(img, lowerBoundBody, upperBoundBody)
         maskBodyOpen = cv2.morphologyEx(maskBody, cv2.MORPH_OPEN, kernelOpen)
-        maskBodyClose = cv2.morphologyEx(maskBodyOpen, cv2.MORPH_CLOSE, kernelClose)
+        maskBodyClose = cv2.morphologyEx(maskBodyOpen, cv2.MORPH_CLOSE, kernelCloseBody)
         maskMarking = cv2.inRange(img, lowerBoundMarking, upperBoundMarking)
-        maskMarkingOpen = cv2.morphologyEx(maskMarking, cv2.MORPH_OPEN, kernelOpen)
-        maskMarkingClose = cv2.morphologyEx(maskMarkingOpen, cv2.MORPH_CLOSE, kernelClose)
+        #maskMarkingOpen = cv2.morphologyEx(maskMarking, cv2.MORPH_OPEN, kernelOpen)
+        maskMarkingClose = cv2.morphologyEx(maskMarking, cv2.MORPH_CLOSE, kernelCloseMarking)
         maskFinal = np.uint8((0.5 * maskMarkingClose + 0.5 * maskBodyClose) / 255)
         conts, h = cv2.findContours(maskFinal.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        """to_remove = []
+        to_remove = []
         for i in range(len(conts)):
-            if len(conts[i]) < lengthLower or len(conts[i]) > lengthUpper or np.linalg.norm(conts[0][int(len(conts[0])/2)] - self.pos) > 150:
+            print(conts[i][int(len(conts[i])/2)])
+            dist_to_pos = np.linalg.norm(conts[i][int(len(conts[i])/2)][0] - self.pos)
+            if len(conts[i]) < lengthLower or (dist_to_pos > 50 and self.pos != (0, 0)):
                 to_remove.append(i)
-        conts = np.delete(conts, to_remove, 0)"""
+        conts = np.delete(conts, to_remove, 0)
 
         # If robot is found, update position to average point location
         if len(conts) > 0:
@@ -108,13 +110,13 @@ class RobotControl:
             y_sum = 0
             sum = 0
             for c in conts:
-                x_sum += c[0][0][0]
-                y_sum += c[0][0][1]
+                x_sum += c[int(len(c)/2)][0][0]
+                y_sum += c[int(len(c)/2)][0][1]
                 sum += 1
-            pos = (x_sum / sum, y_sum / sum)
-            print("pos: {}".format(pos))
+            self.pos = (int(x_sum / sum), int(y_sum / sum))
+            print("pos: {}".format(self.pos))
 
-        return conts, 255 * maskFinal
+        return conts, maskMarking#255 * maskFinal
 
     def wait_for_message(self, msg):
         line = self.ser.readline()
@@ -180,22 +182,21 @@ class RobotControl:
     def __init__(self, cam):
         self.cap = cv2.VideoCapture(cam)
         self.first_frame = True
-        self.send_command("cr", 100)
-        self.send_command("cf", 100)
-        self.send_command("cf", -100)
-        """while True:
+        while True:
+            # Capture frame and process, break if no frame available
             if self.cap.isOpened():
-                # Capture frame and process, break if no frame available
                 ret = self.capture_frame()
                 if ret == 0:
                     break
 
+            # Control
+
             # Close program when q pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break"""
+            if cv2.waitKey(0) & 0xFF == ord('q'):
+                break
 
 
-rc = RobotControl("/home/philip/Videos/Webcam/table-3_2.webm")
+rc = RobotControl("/home/philip/Videos/Webcam/robot-1.webm")
 #rc = RobotControl(1)
 rc.cap.release()
 cv2.destroyAllWindows()
