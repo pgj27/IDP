@@ -35,6 +35,9 @@ class Robot
     int blockNo; //for storing the value of blocks stored on the robot
     bool waitingDist;
     bool waitingRot; // Used when waiting for commands
+    Servo gripperServo;
+    int startingPos = 120; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
+    int gripPos = 160;    //for gripping block
     
   private:
     static void isr0(); //intermediate ISRs for directing to actual ISRs
@@ -50,13 +53,12 @@ class Robot
     Adafruit_DCMotor *leftDriveMotor;
     Adafruit_DCMotor *rightDriveMotor;
     Adafruit_DCMotor *gripperMotor;
-    Servo gripperServo;
+
     int optoPin; //Opto switch pin (input)
     int hallPin; //Hall effect sensor pin (input)
     int blockdetecPin; //Block detector pin (input)
     int gripperServoPin; //Pin to gripper servo (output)
-    int startingPos = 19; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
-    int gripPos = 100;    //for gripping block
+
 
 };
 

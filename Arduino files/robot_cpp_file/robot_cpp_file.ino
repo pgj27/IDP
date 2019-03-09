@@ -101,16 +101,16 @@ short Robot::processCommand(char byte_in)
 void Robot::conveyorIncrement()
 {  
   uint8_t i;
-  int incrementSpeed = 170;
+  int incrementSpeed = 180;
 
-  conveyorMotor->run(FORWARD);
+  conveyorMotor->run(BACKWARD);
   for (i=0; i<incrementSpeed; i++) {
     conveyorMotor->setSpeed(i);
-    delay(10);
+    delay(5);
   }
   for (i=incrementSpeed; i!=0; i--) {
     conveyorMotor->setSpeed(i);
-    delay(10);
+    delay(5);
   }
 
   conveyorMotor->run(RELEASE);
@@ -123,7 +123,7 @@ void Robot::unloadConveyor()
   int unloadTime = 50;
 
   //Accelerate
-  conveyorMotor->run(BACKWARD);
+  conveyorMotor->run(FORWARD);
   for (i=0; i<unloadSpeed; i++) {
     conveyorMotor->setSpeed(i);
     delay(5);
@@ -153,7 +153,7 @@ void Robot::straightMovement(short distance) {
     uint8_t i; //used for incrementing speed for acceleration and deceleration
     int fullSpeed = 200;
     currentDist = 0;
-    float brakeDistance = 35; //For stopping on path and preparing to break
+    float brakeDistance = 60; //For stopping on path and preparing to break
   
     //if x is negative then we are moving backwards, if x positive -> forward
     if(distance < 0){
@@ -168,7 +168,7 @@ void Robot::straightMovement(short distance) {
     //Acceleration
     Serial.println("Accelerating");
     for (i=0; i<fullSpeed; i+=10) {
-      leftDriveMotor->setSpeed(i);
+      leftDriveMotor->setSpeed(i*1.06);
       rightDriveMotor->setSpeed(i);
       Serial.print("Current dist acceleration: ");
       Serial.println(currentDist);
@@ -199,8 +199,8 @@ void Robot::straightMovement(short distance) {
 
     //Deceleration
     Serial.println("Decelerating");
-    for (i=fullSpeed; i!=0; i-= 10) {
-      leftDriveMotor->setSpeed(i);
+    for (i=fullSpeed; i!=0; i-= 20) {
+      leftDriveMotor->setSpeed(i*1.06);
       rightDriveMotor->setSpeed(i);
       Serial.print("Current dist decceleration: ");
       Serial.println(currentDist);
@@ -214,7 +214,10 @@ void Robot::straightMovement(short distance) {
   }
 }
 
-void Robot::rotate(short distance) { 
+void Robot::rotate(short rotation) { 
+  float conversion2 = 1.745329; //1.745329 mm = 1 deg turned 
+  float distance = conversion2 * rotation + 40;
+  
   if(process == 1){
     uint8_t i; //used for incrementing speed for acceleration and deceleration
     int fullSpeed = 100;
@@ -236,15 +239,15 @@ void Robot::rotate(short distance) {
     for (i=0; i<fullSpeed; i+=10) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
-      Serial.print("Current dist acceleration: ");
-      Serial.println(currentDist);
+      Serial.print("Current angle acceleration: ");
+      Serial.println(currentDist/conversion2);
     }
   
     Serial.println("Constant movement");
     //Constant speed whilst currentDist is less than distance
     while(currentDist <= abs(distance)-brakeDistance) {
-      Serial.print("Current dist constant movement: ");
-      Serial.println(currentDist);
+      Serial.print("Current angle constant movement: ");
+      Serial.println(currentDist/conversion2);
      
   
     }
@@ -253,8 +256,8 @@ void Robot::rotate(short distance) {
     for (i=fullSpeed; i!=0; i-=10) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
-      Serial.print("Current dist decceleration: ");
-      Serial.println(currentDist);
+      Serial.print("Current angle decceleration: ");
+      Serial.println(currentDist/conversion2);
     }
   
     //Brake
@@ -270,7 +273,9 @@ void Robot::gripBlock(){
 
     //GETTING ROBOT POSITIONED ABOVE BLOCK 
     uint8_t i; //used for incrementing speed for acceleration and deceleration
-    int getBlockSpeed = 100; //need to test this
+    int getBlockSpeed = 130; //need to test this
+    leftDriveMotor->run(BACKWARD);
+    rightDriveMotor->run(FORWARD);
     Serial.println("Accelerating");
     for (i=0; i<getBlockSpeed; i++) {
       leftDriveMotor->setSpeed(i);
@@ -308,8 +313,8 @@ void Robot::loadConveyor(){
   Serial.println("Moving up");
   uint8_t i;
   int rotateSpeed = 255; //this may be different for returning arm
-  int rotateTime = 40;
-  gripperMotor->run(FORWARD);
+  int rotateTime = 60;
+  gripperMotor->run(BACKWARD);
   for (i=0; i<rotateSpeed; i+=5) {
     gripperMotor->setSpeed(i);
     delay(5); 
@@ -336,7 +341,7 @@ void Robot::loadConveyor(){
    
  //ROTATE GRIPPER ARM
  Serial.println("Moving back");
-  gripperMotor->run(BACKWARD);
+  gripperMotor->run(FORWARD);
   for (i=0; i<rotateSpeed; i+=5) {
     gripperMotor->setSpeed(i);
     delay(5); 
@@ -373,6 +378,7 @@ void loop()
   static Robot r(0);
   if (!setup_done) {
     r.begin();
+    r.gripperServo.write(r.startingPos);
     Serial.println("Set up complete");
     r.process = 0;
     setup_done = true;
@@ -391,15 +397,17 @@ void loop()
     short rot = 0;
     //here we pring out coordinates for rotating and straightmovement
     Serial.println("Following path");
-    while (r.waitingDist || r.waitingRot) {
-      if (Serial.available())
-        r.processCommand(Serial.read());
-    Serial.println("Following path");
+    //while (r.waitingDist || r.waitingRot) {
+      //if (Serial.available())
+        //r.processCommand(Serial.read());
+    //}
     //delay(5000);
-    r.straightMovement(600);
+    //r.straightMovement(100);
+    delay(5000);
+    r.straightMovement(100);
+    delay(1000);
     
-    r.rotate(160);
-    
+    /*
     r.straightMovement(300);
     
     r.rotate(160);
@@ -411,7 +419,7 @@ void loop()
     r.straightMovement(300);
     
     r.rotate(160);
-    
+    */
     
     /*if (Serial.available()) {
       short dist = r.processCommand(Serial.read(), CMD_FORWARD);
@@ -425,10 +433,11 @@ void loop()
     if(r.process == 1) {
       r.process = 5; //if block not found revert to 5 and re-route
     }
-    r.rotate(rot);
-    r.straightMovement(dist);
-    delay(1000);
+    //r.rotate(rot);
+    //r.straightMovement(dist);
+    //delay(1000);
   }
+  
   
   
   
