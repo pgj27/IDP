@@ -9,6 +9,7 @@ class RobotControl:
     conts = []
     mask = []
     pos = (0, 0)
+    start_pos = (0, 0)
     pos_buffer = []
     pos_buffer_location = 0
     angle = 0
@@ -49,6 +50,48 @@ class RobotControl:
         scale = sum / (15 * (len(line_y)-1))
         print("scale is {} pixels/cm".format(scale))
         return scale
+
+    def go_to_pos(self, goal):
+        # Find angle to rotate and straight line distance
+        angle_to_goal = np.atan(goal[1] / goal[0]) - self.angle
+        dist_to_goal = np.linalg.norm(goal - self.pos)
+        print("Rotate {}, forward {}".format(angle_to_goal, dist_to_goal))
+
+        # Send commands to robot
+        self.send_command("cr", angle_to_goal)
+        self.send_command("cf", dist_to_goal)
+
+    def deposit_cells(self):
+        # Go to shelf
+        shelf_pos = (self.start_pos[0], self.start_pos[1] + 240)
+        self.go_to_pos(shelf_pos)
+
+        # Rotate so back is facing shelf
+        self.send_command("cr", self.angle % np.pi)
+
+        # Deposit cells
+        self.send_command("cd", 0)
+
+    def plan_path(self):
+        # If there are no cells left, drop off and return home
+        if len(self.cells) == 0:
+            self.deposit_cells()
+            self.go_to_pos(self.start_pos)
+
+        # Find closest cell to current position
+        closest_cell = 0
+        for i in range(len(self.cells)):
+            if np.linalg.norm(self.cells[i] - self.pos) < np.linalg.norm(self.cells[closest_cell] - self.pos):
+                closest_cell = i
+
+        self.go_to_pos(self.cells[closest_cell])
+
+        # Wait for robot to pick up or reject cell
+        if self.wait_for_message("Done", 10):
+            np.delete(self.cells, closest_cell)
+            self.plan_path()
+        else:
+            self.plan_path()
 
     def process_first_frame(self, img):
         # Set parameters to filter
@@ -105,8 +148,6 @@ class RobotControl:
                 to_remove.append(i)
         conts = np.delete(conts, to_remove, 0)
 
-        # Get robot orientation
-
         # If robot is found, update position to average point location
         if len(conts) > 0:
             x_sum = 0
@@ -121,7 +162,7 @@ class RobotControl:
                 n += 1
 
             # Average angles to get robot heading
-            self.angle = angle_sum / n
+            self.angle = angle_sum / n + np.pi / 2
 
             # Update position smoothing buffer
             if len(self.pos_buffer) < 5:
@@ -129,7 +170,11 @@ class RobotControl:
             else:
                 self.pos_buffer[self.pos_buffer_location] = (int(x_sum / n), int(y_sum / n))
             self.pos_buffer_location = (self.pos_buffer_location + 1) % 5
-            print("pos: {}".format(self.pos))
+            print("pos: {}, angle: {}".format(self.pos, self.angle))
+
+            # Set start location in first frame
+            if self.start_pos == (0, 0):
+                self.start_pos = self.pos
 
         # Smooth robot position
         x_sum = 0
@@ -143,19 +188,28 @@ class RobotControl:
 
         return conts, 255 * maskFinal
 
-    def wait_for_message(self, msg):
+    def wait_for_message(self, msg, timeout):
+        waittime = 0.01
+        i = 0
+        i_max = timeout / waittime
         line = self.ser.readline()
         while line != msg:
+            if i > i_max:
+                print("Timed out waiting for {}".format(msg))
+                return False
             print("Waiting for {}, heard {}".format(msg, line))
-            time.sleep(0.01)
+            time.sleep(waittime)
+            i += 1
             line = self.ser.readline()
+        return True
 
     def send_command(self, command, param):
         ready = b'Following path\r\n'
         received = b'Command received\r\n'
         finish = b'Finished moving\r\n'
 
-        self.wait_for_message(ready)
+        if not self.wait_for_message(ready, 10):
+            return False
 
         line = self.ser.readline()
         while line != received:
@@ -169,7 +223,7 @@ class RobotControl:
 
         self.wait_for_message(finish)
         print("Executed command successfully")
-        return 0
+        return True
 
     def capture_frame(self):
         # Capture frame-by-frame
