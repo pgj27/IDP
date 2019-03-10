@@ -404,7 +404,7 @@ void loop()
     //delay(5000);
     //r.straightMovement(100);
     delay(5000);
-    r.straightMovement(100);
+    r.straightMovement(200);
     delay(1000);
     
     /*
