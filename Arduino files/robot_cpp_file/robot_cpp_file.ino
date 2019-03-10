@@ -78,24 +78,16 @@ void Robot::blockDetection(){
 
 short Robot::processCommand(char byte_in)
 {
-  if (byte_in == CMD_START) {
-    //Serial.println("Got command");
-    while (!Serial.available())
-      delay(10);
-    byte_in = Serial.read();
-    if (byte_in == CMD_FORWARD)
-      waitingDist = false;
-    else if (byte_in == CMD_ROTATE)
-      waitingRot = false;
-    unsigned char byte_1 = Serial.read();
-    char byte_2 = Serial.read();
-    short data;
-    data = byte_2;
-    data <<= 8;
-    data += byte_1;
-    Serial.println("Distance received");
-    return data;
-  }
+  unsigned char byte_1 = byte_in;
+  while(!Serial.available())
+    delay(0.01);
+  char byte_2 = Serial.read();
+  short data;
+  data = byte_2;
+  data <<= 8;
+  data |= byte_1;
+  Serial.println("Command received");
+  return data;
 }
 
 void Robot::conveyorIncrement()
@@ -148,8 +140,10 @@ void Robot::unloadConveyor()
 
 //MAY NEED TO MAKE DECCELERATION AND ACCELERATION FASTER
 //May be a better way to deccelerate 
-void Robot::straightMovement(short distance) { 
-  if(process == 1){
+void Robot::straightMovement(short distance) {
+  Serial.print("Forward ");
+  Serial.println(distance);
+  if(process == 1){    
     uint8_t i; //used for incrementing speed for acceleration and deceleration
     int fullSpeed = 200;
     currentDist = 0;
@@ -168,6 +162,8 @@ void Robot::straightMovement(short distance) {
     //Acceleration
     Serial.println("Accelerating");
     for (i=0; i<fullSpeed; i+=10) {
+      if (currentDist > abs(distance) - brakeDistance)
+        break;
       leftDriveMotor->setSpeed(i*1.06);
       rightDriveMotor->setSpeed(i);
       Serial.print("Current dist acceleration: ");
@@ -181,20 +177,20 @@ void Robot::straightMovement(short distance) {
     Serial.print("Current dist constant movement: ");
     Serial.println(currentDist);
       short steering = 0;
-      //while (!Serial.available())
-        //delay(0.01);
-      //if (Serial.available())
-        //steering = this->processCommand(Serial.read(), CMD_STEERING);
-      //leftDriveMotor->setSpeed(fullSpeed / 2 + steering / 100);
-      //rightDriveMotor->setSpeed(fullSpeed / 2 - steering / 100);
-      /*Serial.println("Steering command");
+      /*while (!Serial.available())
+        delay(0.01);
+      if (Serial.available())
+        steering = this->processCommand(Serial.read(), CMD_STEERING);
+      leftDriveMotor->setSpeed(fullSpeed / 2 + steering / 100);
+      rightDriveMotor->setSpeed(fullSpeed / 2 - steering / 100);
+      Serial.println("Steering command");
       Serial.println(steering);
       Serial.print("Left motor speed: ");
       Serial.print(fullSpeed / 2 + steering / 100);
       Serial.print(", Right motor speed: ");
       Serial.println(fullSpeed / 2 - steering / 100);
-      //Serial.print("Current dist constant movement: ");
-      //Serial.println(currentDist);*/
+      Serial.print("Current dist constant movement: ");
+      Serial.println(currentDist);*/
     }
 
     //Deceleration
@@ -214,7 +210,9 @@ void Robot::straightMovement(short distance) {
   }
 }
 
-void Robot::rotate(short rotation) { 
+void Robot::rotate(short rotation) {
+  Serial.print("Rotate ");
+  Serial.println(rotation);
   float conversion2 = 1.745329; //1.745329 mm = 1 deg turned 
   float distance = conversion2 * rotation + 40;
   
@@ -237,6 +235,8 @@ void Robot::rotate(short rotation) {
     //Acceleration
     Serial.println("Accelerating");
     for (i=0; i<fullSpeed; i+=10) {
+      if (currentDist > abs(distance) - brakeDistance)
+        break;
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
       Serial.print("Current angle acceleration: ");
@@ -349,7 +349,7 @@ void Robot::loadConveyor(){
   
   for (i=0; i<rotateTime; i++) {
     gripperMotor->setSpeed(rotateSpeed);
-    delay(100); 
+    delay(100);
   }
 
   for (i=rotateSpeed; i!=0; i-=5) {
@@ -391,51 +391,33 @@ void loop()
   }
 
   else if(r.process == 1){
-    r.waitingDist = true;
-    r.waitingRot = true;
-    short dist = 0;
-    short rot = 0;
     //here we pring out coordinates for rotating and straightmovement
     Serial.println("Following path");
-    //while (r.waitingDist || r.waitingRot) {
-      //if (Serial.available())
-        //r.processCommand(Serial.read());
-    //}
-    //delay(5000);
-    //r.straightMovement(100);
-    delay(5000);
-    r.straightMovement(100);
-    delay(1000);
-    
-    /*
-    r.straightMovement(300);
-    
-    r.rotate(160);
-    
-    r.straightMovement(600);
-    
-    r.rotate(160);
-    
-    r.straightMovement(300);
-    
-    r.rotate(160);
-    */
-    
-    /*if (Serial.available()) {
-      short dist = r.processCommand(Serial.read(), CMD_FORWARD);
-      Serial.println("Distance received");
-      Serial.println(dist);
-      r.straightMovement(dist);
-      delay(1000);
-      
-    }*/
-  
-    if(r.process == 1) {
-      r.process = 5; //if block not found revert to 5 and re-route
+    short dist = 0;
+    short rot = 0;
+    if (Serial.available()) {
+      char byte_in = Serial.read();
+      if (byte_in == CMD_START) {
+        //Serial.println("Got command");
+        while (!Serial.available())
+            delay(10);
+        byte_in = Serial.read();
+        if (byte_in == CMD_FORWARD) {
+          dist = r.processCommand(Serial.read());
+          r.straightMovement(dist);
+        }
+        else if (byte_in == CMD_ROTATE) {
+          rot = r.processCommand(Serial.read());
+          r.rotate(rot);
+        }
+      }
     }
-    //r.rotate(rot);
-    //r.straightMovement(dist);
-    //delay(1000);
+    //delay(5000);
+    delay(1000);
+  
+    //if(r.process == 1) {
+    //  r.process = 5; //if block not found revert to 5 and re-route
+    //}
   }
   
   

@@ -37,7 +37,7 @@ class Robot
     bool waitingRot; // Used when waiting for commands
     Servo gripperServo;
     int startingPos = 120; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
-    int gripPos = 160;    //for gripping block
+    int gripPos = 165;    //for gripping block
     
   private:
     static void isr0(); //intermediate ISRs for directing to actual ISRs

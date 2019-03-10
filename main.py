@@ -14,7 +14,7 @@ class RobotControl:
     pos_buffer_location = 0
     angle = 0
     cells = []
-    #ser = serial.Serial('/dev/ttyACM0', 9600)
+    ser = serial.Serial('/dev/ttyACM0', 9600)
 
     def find_line(self, conts):
         min_x = 1000
@@ -53,13 +53,14 @@ class RobotControl:
 
     def go_to_pos(self, goal):
         # Find angle to rotate and straight line distance
-        angle_to_goal = np.atan(goal[1] / goal[0]) - self.angle
-        dist_to_goal = np.linalg.norm(goal - self.pos)
+        angle_to_goal = np.arctan2(goal[1], goal[0]) - self.angle
+        to_goal = (goal[0] - self.pos[0], goal[1] - self.pos[1])
+        dist_to_goal = np.linalg.norm(to_goal)
         print("Rotate {}, forward {}".format(angle_to_goal, dist_to_goal))
 
         # Send commands to robot
-        self.send_command("cr", angle_to_goal)
-        self.send_command("cf", dist_to_goal)
+        self.send_command("cr", int(angle_to_goal * 180 / np.pi))
+        self.send_command("cf", 5 * int(dist_to_goal))
 
     def deposit_cells(self):
         # Go to shelf
@@ -206,22 +207,22 @@ class RobotControl:
     def send_command(self, command, param):
         ready = b'Following path\r\n'
         received = b'Command received\r\n'
-        finish = b'Finished moving\r\n'
+        finish = b'Brake\r\n'
 
-        if not self.wait_for_message(ready, 10):
+        if not self.wait_for_message(ready, 1000):
             return False
 
         line = self.ser.readline()
+        self.ser.write(str.encode(command))
+        self.ser.write(struct.pack("h", param))
+        print("Sent {}: {}".format(command, param))
         while line != received:
-            self.ser.write(str.encode(command))
-            self.ser.write(struct.pack("h", param))
-            print("Sent {}: {}".format(command, param))
             print("heard: {}".format(str(line, 'utf-8', errors='ignore')))
             time.sleep(0.1)
             line = self.ser.readline()
         print("Sent command successfully")
 
-        self.wait_for_message(finish)
+        self.wait_for_message(finish, 10)
         print("Executed command successfully")
         return True
 
@@ -261,6 +262,7 @@ class RobotControl:
     def __init__(self, cam):
         self.cap = cv2.VideoCapture(cam)
         self.first_frame = True
+        self.go_to_pos((100, 100))
         while True:
             # Capture frame and process, break if no frame available
             if self.cap.isOpened():
