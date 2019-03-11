@@ -25,6 +25,7 @@ class Robot
     void straightMovement(short distance);
     void rotate(short distance);
     void gripBlock();
+    void positionGripper();
     void turn90(int deg);
     Robot (const byte which);
     void begin ();

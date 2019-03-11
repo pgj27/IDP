@@ -369,6 +369,24 @@ void Robot::releaseBlock(){ //BLOCK SHOULD BE ABLE TO PASS UNDER WITHOUT MOVING 
    }
 }
 
+void Robot::positionGripper(){
+   //ROTATE GRIPPER ARM
+  uint8_t i;
+   
+  gripperMotor->run(FORWARD);
+  for (i=0; i<30; i+=5) {
+    gripperMotor->setSpeed(i);
+    delay(5); 
+  }
+
+  for (i=30; i!=0; i-=5) {
+    gripperMotor->setSpeed(i);
+    delay(5);
+  }
+  gripperMotor->run(RELEASE);
+  
+}
+
 void setup()
 {
   Serial.println("Starting up");
@@ -380,27 +398,7 @@ void loop()
   if (!setup_done) {
     r.begin();
     r.gripperServo.write(r.startingPos);
-    
- Serial.println("Moving back");
-  r.gripperMotor->run(FORWARD);
-  int rotateSpeed = 30;
-  int rotateTime = 0;
-  int i;
-  for (i=0; i<rotateSpeed; i+=5) {
-    r.gripperMotor->setSpeed(i);
-    delay(5); 
-  }
-  
-  for (i=0; i<rotateTime; i++) {
-    r.gripperMotor->setSpeed(rotateSpeed);
-    delay(100);
-  }
-
-  for (i=rotateSpeed; i!=0; i-=5) {
-    r.gripperMotor->setSpeed(i);
-    delay(5);
-  }
-  r.gripperMotor->run(RELEASE);
+    r.positionGripper();
     Serial.println("Set up complete");
     r.process = 0;
     setup_done = true;
