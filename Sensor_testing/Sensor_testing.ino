@@ -1,5 +1,5 @@
 const byte hallPin = 3; 
-const byte blockDetPin =2;
+const byte blockDetPin = 2;
 const byte encoder = 19;
 int blockVal;
 int hallVal;

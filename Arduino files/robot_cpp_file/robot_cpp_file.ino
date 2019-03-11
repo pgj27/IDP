@@ -174,8 +174,8 @@ void Robot::straightMovement(short distance) {
 
     //Constant speed whilst currentDist is less than distance
     while(currentDist <= abs(distance)-brakeDistance and process == 1) {
-    //Serial.print("Current dist constant movement: ");
-    //Serial.println(currentDist);
+    Serial.print("Current dist constant movement: ");
+    Serial.println(currentDist);
       short steering = 0;
       /*while (!Serial.available())
         delay(0.01);
@@ -245,7 +245,7 @@ void Robot::rotate(short rotation) {
   
     Serial.println("Constant movement");
     //Constant speed whilst currentDist is less than distance
-    while(currentDist <= abs(distance)-brakeDistance) {
+    while(currentDist <= abs(distance)-brakeDistance and process == 1) {
       Serial.print("Current angle constant movement: ");
       Serial.println(currentDist/conversion2);
     }
@@ -272,7 +272,7 @@ void Robot::gripBlock(){
 
     //GETTING ROBOT POSITIONED ABOVE BLOCK 
     uint8_t i; //used for incrementing speed for acceleration and deceleration
-    int getBlockSpeed = 130; //need to test this
+    int getBlockSpeed = 100; //need to test this
     leftDriveMotor->run(BACKWARD);
     rightDriveMotor->run(FORWARD);
     Serial.println("Accelerating");
@@ -415,6 +415,7 @@ void loop()
         }
       }
     }
+    //delay(5000);
     delay(1000);
   
     //if(r.process == 1) {

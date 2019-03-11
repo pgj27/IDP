@@ -1,3 +1,38 @@
+def find_line(self, conts):
+    min_x = 1000
+    max_x = 0
+    line_y = []
+    line_y_right = []
+
+    # Find furthest left and right points
+    for i in range(len(conts)):
+        if conts[i][0][0][0] < min_x:
+            min_x = conts[i][0][0][0]
+        if conts[i][0][0][0] > max_x:
+            max_x = conts[i][0][0][0]
+
+    # Find points in a line with these
+    for i in range(len(conts)):
+        if conts[i][0][0][0] - min_x < 10:
+            line_y.append(conts[i][0][0][1])
+        if conts[i][0][0][0] - max_x > -10:
+            line_y_right.append(conts[i][0][0][0])
+
+    # Choose the longer line as the reference point
+    if len(line_y_right) > len(line_y):
+        line_y = line_y_right
+
+    # Average with distance to find scale
+    sum = 0
+    if len(line_y) < 2:
+        print("Couldn't find line of cells, no scale could be found")
+        return 5
+    for i in range(len(line_y) - 1):
+        sum += line_y[i] - line_y[i + 1]
+    scale = sum / (15 * (len(line_y) - 1))
+    print("scale is {} pixels/cm".format(scale))
+    return scale
+
 def plan_path(self, grid):
     to_visit = [[0, 0]]
     num_nodes = 1
