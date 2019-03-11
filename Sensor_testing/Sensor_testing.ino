@@ -1,5 +1,6 @@
 const byte hallPin = 3; 
 const byte blockDetPin =2;
+const byte encoder = 19;
 int blockVal;
 int hallVal;
 volatile int process=0;
@@ -10,7 +11,9 @@ void setup() {
   Serial.begin(9600);
   pinMode(hallPin, INPUT_PULLUP);
   pinMode(blockDetPin, INPUT_PULLUP);
+  pinMode(encoder, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(hallPin), magnetDetection, RISING);
+  attachInterrupt(digitalPinToInterrupt(encoder), encoderWork, RISING);
   attachInterrupt(digitalPinToInterrupt(blockDetPin), blockDetection, RISING);
 }
 
@@ -87,6 +90,16 @@ void magnetDetection(){
      //noInterrupts();
      process = 4;
      Serial.println("Magnet detected");
+     //delayMicroseconds(1000); 
+     //interrupts();
+     /*as this is called the gripper will be gripping the block, 
+      so if it is activated the gripper must release the block
+     */
+}
+
+void encoderWork(){
+     //noInterrupts();
+     Serial.println("wheel turn");
      //delayMicroseconds(1000); 
      //interrupts();
      /*as this is called the gripper will be gripping the block, 

@@ -415,7 +415,6 @@ void loop()
         }
       }
     }
-    //delay(5000);
     delay(1000);
   
     //if(r.process == 1) {
