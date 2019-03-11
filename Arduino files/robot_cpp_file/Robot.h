@@ -4,6 +4,7 @@
 #define CMD_FORWARD 102
 #define CMD_STEERING 115
 #define CMD_ROTATE 114
+#define CMD_UNLOAD 117
 
 #include "Arduino.h"
 #include "Wire.h"

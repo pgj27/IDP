@@ -74,6 +74,13 @@ class RobotControl:
         self.send_command("cd", 0)
 
     def plan_path(self):
+        # Capture frame and process, break if no frame available
+        if self.cap.isOpened():
+            ret = self.capture_frame()
+            if ret == 0:
+                print("No frame")
+                return False
+
         # If there are no cells left, drop off and return home
         if len(self.cells) == 0:
             self.deposit_cells()
@@ -86,12 +93,15 @@ class RobotControl:
                 closest_cell = i
 
         self.go_to_pos(self.cells[closest_cell])
+        print("Reached cell")
 
         # Wait for robot to pick up or reject cell
-        if self.wait_for_message("Done", 10):
+        if self.wait_for_message(b"Finished with block\r\n", 10):
+            print("Found block, continuing on path")
             np.delete(self.cells, closest_cell)
             self.plan_path()
         else:
+            print("Didn't find block, re-routing")
             self.plan_path()
 
     def process_first_frame(self, img):
@@ -262,19 +272,13 @@ class RobotControl:
     def __init__(self, cam):
         self.cap = cv2.VideoCapture(cam)
         self.first_frame = True
-        self.go_to_pos((100, 100))
-        while True:
-            # Capture frame and process, break if no frame available
-            if self.cap.isOpened():
-                ret = self.capture_frame()
-                if ret == 0:
-                    break
 
-            # Control
+        # Control
+        self.plan_path()
 
-            # Close program when q pressed
-            if cv2.waitKey(0) & 0xFF == ord('q'):
-                break
+        # Close program when q pressed
+        #if cv2.waitKey(0) & 0xFF == ord('q'):
+        #    break
 
 
 rc = RobotControl("/home/philip/Videos/Webcam/robot-1.webm")

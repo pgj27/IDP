@@ -166,16 +166,16 @@ void Robot::straightMovement(short distance) {
         break;
       leftDriveMotor->setSpeed(i*1.06);
       rightDriveMotor->setSpeed(i);
-      Serial.print("Current dist acceleration: ");
-      Serial.println(currentDist);
+      //Serial.print("Current dist acceleration: ");
+      //Serial.println(currentDist);
     }
   
     Serial.println("Constant movement");
 
     //Constant speed whilst currentDist is less than distance
     while(currentDist <= abs(distance)-brakeDistance and process == 1) {
-    Serial.print("Current dist constant movement: ");
-    Serial.println(currentDist);
+    //Serial.print("Current dist constant movement: ");
+    //Serial.println(currentDist);
       short steering = 0;
       /*while (!Serial.available())
         delay(0.01);
@@ -198,8 +198,8 @@ void Robot::straightMovement(short distance) {
     for (i=fullSpeed; i!=0; i-= 20) {
       leftDriveMotor->setSpeed(i*1.06);
       rightDriveMotor->setSpeed(i);
-      Serial.print("Current dist decceleration: ");
-      Serial.println(currentDist);
+      //Serial.print("Current dist decceleration: ");
+      //Serial.println(currentDist);
     }
   
     //Brake
@@ -239,8 +239,8 @@ void Robot::rotate(short rotation) {
         break;
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
-      Serial.print("Current angle acceleration: ");
-      Serial.println(currentDist/conversion2);
+      //Serial.print("Current angle acceleration: ");
+      //Serial.println(currentDist/conversion2);
     }
   
     Serial.println("Constant movement");
@@ -248,16 +248,15 @@ void Robot::rotate(short rotation) {
     while(currentDist <= abs(distance)-brakeDistance) {
       Serial.print("Current angle constant movement: ");
       Serial.println(currentDist/conversion2);
-     
-  
     }
+
     //Deceleration
     Serial.println("Decelerating");
     for (i=fullSpeed; i!=0; i-=10) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
-      Serial.print("Current angle decceleration: ");
-      Serial.println(currentDist/conversion2);
+      //Serial.print("Current angle decceleration: ");
+      //Serial.println(currentDist/conversion2);
     }
   
     //Brake
@@ -410,6 +409,10 @@ void loop()
           rot = r.processCommand(Serial.read());
           r.rotate(rot);
         }
+        else if (byte_in == CMD_UNLOAD) {
+          r.processCommand(Serial.read());
+          r.unloadConveyor();
+        }
       }
     }
     //delay(5000);
@@ -441,18 +444,20 @@ void loop()
     r.blockNo += 1;
     Serial.print(r.blockNo);
     Serial.println(" blocks");
-    if(r.blockNo == 5){ //are there a set number of non magnetic blocks
+    Serial.println("Finished with block");
+    /*if(r.blockNo == 5){ //are there a set number of non magnetic blocks
       r.process = 6; //go back to shelf
     }
-    else{
+    else{*/
       r.process = 1; //if all instructions printed at once else to 5/0 and re-route
-    }
+    //}
   }
 
   //Magnet detected
   else if(r.process == 4){
     Serial.println("Releasing magnetic block");
     r.releaseBlock();
+    Serial.println("Finished with block");
     r.process = 1; //if all instructions printed at once else to 5/0 and re-route
   }
 
@@ -466,7 +471,7 @@ void loop()
     Serial.println("Unloading conveyor");
     //instructions to get back to shelf
     r.unloadConveyor();
-    r.process =1;
+    r.process = 1;
   }
 
 }
