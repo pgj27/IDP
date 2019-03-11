@@ -37,7 +37,7 @@ void Robot::begin(){
   {
     case 0:
       attachInterrupt (digitalPinToInterrupt(optoPin), isr0, CHANGE);
-      attachInterrupt (digitalPinToInterrupt(hallPin), isr1, RISING);
+      //attachInterrupt (digitalPinToInterrupt(hallPin), isr1, RISING);
       attachInterrupt (digitalPinToInterrupt(blockdetecPin), isr2, RISING);
       instance0 = this;
       break;
@@ -272,7 +272,7 @@ void Robot::gripBlock(){
 
     //GETTING ROBOT POSITIONED ABOVE BLOCK 
     uint8_t i; //used for incrementing speed for acceleration and deceleration
-    int getBlockSpeed = 100; //need to test this
+    int getBlockSpeed = 80; //need to test this
     leftDriveMotor->run(BACKWARD);
     rightDriveMotor->run(FORWARD);
     Serial.println("Accelerating");
@@ -378,6 +378,27 @@ void loop()
   if (!setup_done) {
     r.begin();
     r.gripperServo.write(r.startingPos);
+    
+ Serial.println("Moving back");
+  r.gripperMotor->run(FORWARD);
+  int rotateSpeed = 30;
+  int rotateTime = 0;
+  int i;
+  for (i=0; i<rotateSpeed; i+=5) {
+    r.gripperMotor->setSpeed(i);
+    delay(5); 
+  }
+  
+  for (i=0; i<rotateTime; i++) {
+    r.gripperMotor->setSpeed(rotateSpeed);
+    delay(100);
+  }
+
+  for (i=rotateSpeed; i!=0; i-=5) {
+    r.gripperMotor->setSpeed(i);
+    delay(5);
+  }
+  r.gripperMotor->run(RELEASE);
     Serial.println("Set up complete");
     r.process = 0;
     setup_done = true;
