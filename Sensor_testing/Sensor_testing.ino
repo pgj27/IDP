@@ -9,7 +9,7 @@ volatile int process=0;
      
 void setup() {
   Serial.begin(9600);
-  pinMode(hallPin, INPUT_PULLUP);
+  pinMode(hallPin, INPUT);
   pinMode(blockDetPin, INPUT_PULLUP);
   pinMode(encoder, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(hallPin), magnetDetection, RISING);
