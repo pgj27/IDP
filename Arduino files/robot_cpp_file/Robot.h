@@ -37,8 +37,9 @@ class Robot
     bool waitingDist;
     bool waitingRot; // Used when waiting for commands
     Servo gripperServo;
-    int startingPos = 100; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
+    int startingPos = 110; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
     int gripPos = 165;    //for gripping block
+    Adafruit_DCMotor *gripperMotor;
     
   private:
     static void isr0(); //intermediate ISRs for directing to actual ISRs
@@ -53,7 +54,6 @@ class Robot
     Adafruit_DCMotor *conveyorMotor; 
     Adafruit_DCMotor *leftDriveMotor;
     Adafruit_DCMotor *rightDriveMotor;
-    Adafruit_DCMotor *gripperMotor;
 
     int optoPin; //Opto switch pin (input)
     int hallPin; //Hall effect sensor pin (input)

@@ -40,6 +40,32 @@ class RobotControl:
         # Deposit cells
         self.send_command("cd", 0)
 
+    def plan_path(self):
+
+        # If there are no cells left, drop off and return home
+        if len(self.cells) == 0:
+            self.deposit_cells()
+            self.go_to_pos(self.start_pos)
+
+        # Find closest cell to current position
+        closest_cell = 0
+        for i in range(len(self.cells)):
+            if np.linalg.norm(self.cells[i] - self.pos) < np.linalg.norm(self.cells[closest_cell] - self.pos):
+                closest_cell = i
+
+        self.reached_block = False
+        self.go_to_pos(self.cells[closest_cell])
+        print("Reached cell")
+
+        # Wait for robot to pick up or reject cell
+        if self.reached_block:
+            print("Found block, continuing on path")
+            np.delete(self.cells, closest_cell)
+            return
+        else:
+            print("Didn't find block, re-routing")
+            return
+
     def process_first_frame(self, img):
         # Set parameters to filter
         lowerBound = np.array([80, 30, 200])
@@ -68,6 +94,73 @@ class RobotControl:
             print(c[0][0])
     
         return conts, maskFinal
+
+    def find_robot(self, img):
+        # Set parameters to filter for robot
+        lowerBoundMarking = np.array([0, 50, 200])
+        upperBoundMarking = np.array([15, 255, 255])
+        lowerBoundBody = np.array([10, 0, 230])
+        upperBoundBody = np.array([50, 30, 255])
+        kernelOpen = np.ones((2, 2))
+        kernelCloseBody = np.ones((15, 15))
+        kernelCloseMarking = np.ones((5, 5))
+        lengthLower = 30
+
+        # Filter points
+        maskBody = cv2.inRange(img, lowerBoundBody, upperBoundBody)
+        maskBodyOpen = cv2.morphologyEx(maskBody, cv2.MORPH_OPEN, kernelOpen)
+        maskBodyClose = cv2.morphologyEx(maskBodyOpen, cv2.MORPH_CLOSE, kernelCloseBody)
+        maskMarking = cv2.inRange(img, lowerBoundMarking, upperBoundMarking)
+        maskMarkingClose = cv2.morphologyEx(maskMarking, cv2.MORPH_CLOSE, kernelCloseMarking)
+        maskFinal = np.uint8((0.5 * maskMarkingClose + 0.5 * maskBodyClose) / 255)
+        conts, h = cv2.findContours(maskFinal.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        to_remove = []
+        for i in range(len(conts)):
+            dist_to_pos = np.linalg.norm(conts[i][int(len(conts[i])/2)][0] - self.pos)
+            if len(conts[i]) < lengthLower or (dist_to_pos > 50 and self.pos != (0, 0)):
+                to_remove.append(i)
+        conts = np.delete(conts, to_remove, 0)
+
+        # If robot is found, update position to average point location
+        if len(conts) > 0:
+            x_sum = 0
+            y_sum = 0
+            angle_sum = 0
+            n = 0
+            for c in conts:
+                p, m, angle = cv2.fitEllipse(c)
+                angle_sum += angle * np.pi / 180
+                x_sum += c[int(len(c)/2)][0][0]
+                y_sum += c[int(len(c)/2)][0][1]
+                n += 1
+
+            # Average angles to get robot heading
+            self.angle = angle_sum / n + np.pi / 2
+
+            # Update position smoothing buffer
+            if len(self.pos_buffer) < 5:
+                self.pos_buffer.append((int(x_sum / n), int(y_sum / n)))
+            else:
+                self.pos_buffer[self.pos_buffer_location] = (int(x_sum / n), int(y_sum / n))
+            self.pos_buffer_location = (self.pos_buffer_location + 1) % 5
+            print("pos: {}, angle: {}".format(self.pos, self.angle))
+
+            # Set start location in first frame
+            if self.start_pos == (0, 0):
+                self.start_pos = self.pos
+
+        # Smooth robot position
+        x_sum = 0
+        y_sum = 0
+        n = 0
+        for i in self.pos_buffer:
+            x_sum += i[0]
+            y_sum += i[1]
+            n += 1
+        if n > 0:
+            self.pos = (int(x_sum / n), int(y_sum / n))
+
+        return conts, 255 * maskFinal
 
     def wait_for_message(self, msg, timeout):
         waittime = 0.01
@@ -124,6 +217,9 @@ class RobotControl:
             self.first_frame = False
             self.conts, self.mask = self.process_first_frame(frameHSV)
 
+        # Find robot
+        self.conts, self.mask = self.find_robot(frameHSV)
+
         return ret, frame
 
     def __init__(self, cam):
@@ -139,26 +235,12 @@ class RobotControl:
         self.send_command("cf", 300)
         self.send_command("cf", 300)
         self.send_command("cf", -500)
-        self.send_command("cr", 90)
-        self.send_command("cf", -800)
-        self.send_command("cr", 188)
-        self.send_command("cf", -1200)
+        self.send_command("cr", -90)
+        self.send_command("cf", -2000)
         self.send_command("cu", 0)
         self.send_command("cr", -90)
         self.send_command("cf", 1200)
         self.send_command("cr", 90)
-
-        while range(len(self.cells) > 0):
-            closest = 0
-            closest_dist = 10000
-            for i in range(len(self.cells)):
-                dist = np.linalg.norm((self.cells[i][0] - self.pos[0], self.cells[i][1] - self.pos[1]))
-                if dist < closest_dist:
-                    closest = i
-                    closest_dist = dist
-            self.go_to_pos(self.cells[closest])
-            self.pos = self.cells[closest]
-            np.delete(self.cells, closest)
 
         """while True:
             # Capture frame and process, break if no frame available
