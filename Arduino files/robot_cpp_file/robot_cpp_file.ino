@@ -273,11 +273,8 @@ void Robot::gripBlock(){
 
     //GETTING ROBOT POSITIONED ABOVE BLOCK 
     uint8_t i; //used for incrementing speed for acceleration and deceleration
-<<<<<<< HEAD
-    int getBlockSpeed = 130; //need to test this
-=======
+
     int getBlockSpeed = 80; //need to test this
->>>>>>> 57365b4c38de016b7f0ea0370aac4242b0e567d5
     leftDriveMotor->run(BACKWARD);
     rightDriveMotor->run(FORWARD);
     Serial.println("Accelerating");
