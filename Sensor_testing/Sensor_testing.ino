@@ -4,6 +4,7 @@ const byte encoder = 19;
 int blockVal;
 int hallVal;
 volatile int process=0;
+int distance=0;
 
 
      
@@ -69,8 +70,8 @@ void forward(){
       int i;
       for (i=0; i<10; i +=1) {
         if(process == 1){
-        Serial.println(i);
         delay(500);
+        Serial.println(distance);
         }
       }
       delay(1000);
@@ -99,7 +100,7 @@ void magnetDetection(){
 
 void encoderWork(){
      //noInterrupts();
-     Serial.println("wheel turn");
+     distance+=10;
      //delayMicroseconds(1000); 
      //interrupts();
      /*as this is called the gripper will be gripping the block, 
