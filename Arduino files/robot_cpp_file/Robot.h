@@ -4,6 +4,7 @@
 #define CMD_FORWARD 102
 #define CMD_STEERING 115
 #define CMD_ROTATE 114
+#define CMD_UNLOAD 117
 
 #include "Arduino.h"
 #include "Wire.h"
@@ -36,7 +37,7 @@ class Robot
     bool waitingDist;
     bool waitingRot; // Used when waiting for commands
     Servo gripperServo;
-    int startingPos = 120; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
+    int startingPos = 100; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
     int gripPos = 165;    //for gripping block
     
   private:

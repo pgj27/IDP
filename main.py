@@ -15,52 +15,19 @@ class RobotControl:
     angle = 0
     cells = []
     ser = serial.Serial('/dev/ttyACM0', 9600)
-
-    def find_line(self, conts):
-        min_x = 1000
-        max_x = 0
-        line_y = []
-        line_y_right = []
-    
-        # Find furthest left and right points
-        for i in range(len(conts)):
-            if conts[i][0][0][0] < min_x:
-                min_x = conts[i][0][0][0]
-            if conts[i][0][0][0] > max_x:
-                max_x = conts[i][0][0][0]
-    
-        # Find points in a line with these
-        for i in range(len(conts)):
-            if conts[i][0][0][0] - min_x < 10:
-                line_y.append(conts[i][0][0][1])
-            if conts[i][0][0][0] - max_x > -10:
-                line_y_right.append(conts[i][0][0][0])
-    
-        # Choose the longer line as the reference point
-        if len(line_y_right) > len(line_y):
-            line_y = line_y_right
-    
-        # Average with distance to find scale
-        sum = 0
-        if len(line_y) < 2:
-            print("Couldn't find line of cells, no scale could be found")
-            return 5
-        for i in range(len(line_y)-1):
-            sum += line_y[i] - line_y[i+1]
-        scale = sum / (15 * (len(line_y)-1))
-        print("scale is {} pixels/cm".format(scale))
-        return scale
+    reached_block = False
 
     def go_to_pos(self, goal):
+        print("Pos: {}, Goal: {}".format(self.pos, goal))
         # Find angle to rotate and straight line distance
-        angle_to_goal = np.arctan2(goal[1], goal[0]) - self.angle
+        angle_to_goal = np.arctan2(goal[1] - self.pos[1], goal[0] - self.pos[0]) - self.angle
         to_goal = (goal[0] - self.pos[0], goal[1] - self.pos[1])
         dist_to_goal = np.linalg.norm(to_goal)
         print("Rotate {}, forward {}".format(angle_to_goal, dist_to_goal))
 
         # Send commands to robot
-        self.send_command("cr", int(angle_to_goal * 180 / np.pi))
-        self.send_command("cf", 5 * int(dist_to_goal))
+        self.send_command("cr", int((angle_to_goal * 180 / np.pi)))
+        self.send_command("cf", 6 * int(dist_to_goal))
 
     def deposit_cells(self):
         # Go to shelf
@@ -74,6 +41,7 @@ class RobotControl:
         self.send_command("cd", 0)
 
     def plan_path(self):
+
         # If there are no cells left, drop off and return home
         if len(self.cells) == 0:
             self.deposit_cells()
@@ -85,14 +53,18 @@ class RobotControl:
             if np.linalg.norm(self.cells[i] - self.pos) < np.linalg.norm(self.cells[closest_cell] - self.pos):
                 closest_cell = i
 
+        self.reached_block = False
         self.go_to_pos(self.cells[closest_cell])
+        print("Reached cell")
 
         # Wait for robot to pick up or reject cell
-        if self.wait_for_message("Done", 10):
+        if self.reached_block == True:
+            print("Found block, continuing on path")
             np.delete(self.cells, closest_cell)
-            self.plan_path()
+            return
         else:
-            self.plan_path()
+            print("Didn't find block, re-routing")
+            return
 
     def process_first_frame(self, img):
         # Set parameters to filter
@@ -185,7 +157,8 @@ class RobotControl:
             x_sum += i[0]
             y_sum += i[1]
             n += 1
-        self.pos = (int(x_sum / n), int(y_sum / n))
+        if n > 0:
+            self.pos = (int(x_sum / n), int(y_sum / n))
 
         return conts, 255 * maskFinal
 
@@ -198,6 +171,8 @@ class RobotControl:
             if i > i_max:
                 print("Timed out waiting for {}".format(msg))
                 return False
+            if line == b'Finished with block\r\n':
+                self.reached_block = True
             print("Waiting for {}, heard {}".format(msg, line))
             time.sleep(waittime)
             i += 1
@@ -222,8 +197,8 @@ class RobotControl:
             line = self.ser.readline()
         print("Sent command successfully")
 
-        self.wait_for_message(finish, 10)
-        print("Executed command successfully")
+        #self.wait_for_message(finish, 10)
+        #print("Executed command successfully")
         return True
 
     def capture_frame(self):
@@ -239,45 +214,68 @@ class RobotControl:
         #cv2.imshow('s',frameHSV[:,:,1])
         #cv2.imshow('v',frameHSV[:,:,2])
 
-        # Do first frame processing (find cells, scale)
+        # Do first frame processing (find cells)
         if self.first_frame:
             self.first_frame = False
             self.conts, self.mask = self.process_first_frame(frameHSV)
 
         # Find robot
         self.conts, self.mask = self.find_robot(frameHSV)
-    
-        # Show robot position and heading (contours for corresponding points)
-        cv2.drawContours(frame, self.conts, -1, (255, 0, 0), 3)
-        cv2.circle(frame, self.pos, 20, (0, 255, 0), 3)
-        arrow = (int(self.pos[0] + 50 * np.cos(self.angle)), int(self.pos[1] + 50 * np.sin(self.angle)))
-        cv2.line(frame, self.pos, arrow, (0, 0, 255), 5)
-        # Show filtered mask (for robot)
-        cv2.imshow("mask", self.mask)
-        # Display camera frame with overlay
-        cv2.imshow("cam", frame)
 
-        return ret
+        return ret, frame
 
     def __init__(self, cam):
         self.cap = cv2.VideoCapture(cam)
         self.first_frame = True
-        self.go_to_pos((100, 100))
-        while True:
+
+        # Control
+        self.send_command("cf", 1800)
+        self.send_command("cr", 90)
+        for i in range(5):
+            self.send_command("cf", 1800)
+            self.send_command("cr", 90)
+            self.send_command("cf", 300)
+            self.send_command("cr", 90)
+            self.send_command("cf", 1800)
+            self.send_command("cr", -90)
+            self.send_command("cf", 300)
+            self.send_command("cr", -90)
+        self.send_command("cf", 800)
+        self.send_command("cr", -90)
+        self.send_command("cf", -1000)
+        self.send_command("cu", 0)
+        self.send_command("cr", 90)
+        self.send_command("cf", 800)
+        self.send_command("cr", 90)
+        """while True:
             # Capture frame and process, break if no frame available
             if self.cap.isOpened():
-                ret = self.capture_frame()
+                ret, frame = self.capture_frame()
                 if ret == 0:
+                    print("No frame")
                     break
 
-            # Control
+            # Show robot position and heading (contours for corresponding points)
+            cv2.drawContours(frame, self.conts, -1, (255, 0, 0), 3)
+            cv2.circle(frame, self.pos, 20, (0, 255, 0), 3)
+            arrow = (int(self.pos[0] + 50 * np.cos(self.angle)), int(self.pos[1] + 50 * np.sin(self.angle)))
+            cv2.line(frame, self.pos, arrow, (0, 0, 255), 5)
+            # Show filtered mask (for robot)
+            cv2.imshow("mask", self.mask)
+            # Display camera frame with overlay
+            cv2.imshow("cam", frame)
+
+            line = self.ser.readline()
+            print(line)
+            if line == b'Following path\r\n':
+                self.plan_path()
 
             # Close program when q pressed
-            if cv2.waitKey(0) & 0xFF == ord('q'):
-                break
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break"""
 
 
-rc = RobotControl("/home/philip/Videos/Webcam/robot-1.webm")
-#rc = RobotControl(1)
+#rc = RobotControl("/home/philip/Videos/Webcam/robot-1.webm")
+rc = RobotControl(1)
 rc.cap.release()
 cv2.destroyAllWindows()
