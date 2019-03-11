@@ -245,7 +245,7 @@ void Robot::rotate(short rotation) {
   
     Serial.println("Constant movement");
     //Constant speed whilst currentDist is less than distance
-    while(currentDist <= abs(distance)-brakeDistance) {
+    while(currentDist <= abs(distance)-brakeDistance and process == 1) {
       Serial.print("Current angle constant movement: ");
       Serial.println(currentDist/conversion2);
      
