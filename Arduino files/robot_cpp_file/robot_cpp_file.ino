@@ -20,13 +20,15 @@ Robot::Robot(const byte whichISR) : whichISR (whichISR)
   backstopServo.attach(9);
   Serial.begin(9600);
   AFMS.begin();
-  optoPin = 19; //All interrupts pins chosen correctly (2,3,18,19,20,21)
-  hallPin = 3;
+  optoPin = 3; //All interrupts pins chosen correctly (2,3,18,19,20,21)
+  hallPin = 19;
   blockdetecPin = 2;
   pinMode(optoPin, INPUT_PULLUP);
-  pinMode(hallPin, INPUT);
+  pinMode(hallPin, INPUT_PULLUP);
   pinMode(blockdetecPin, INPUT_PULLUP);
   currentDist = 0;
+  logDistance = 0;
+  coordinate = 1;
   process = 0;
   blockNo = 0;
   waitingDist = false;
@@ -388,7 +390,7 @@ void Robot::positionGripperArm(){
   gripperMotor->run(FORWARD);
   for (i=0; i<50; i+=1) {
     gripperMotor->setSpeed(i);
-    delay(100); 
+    delay(100);
   }
 
   for (i=50; i!=0; i-=1) {
@@ -409,15 +411,15 @@ void loop()
   static Robot r(0);
   if (!setup_done) {
     r.begin();
- 
     r.process = 0;
     setup_done = true;
   }
 
   if(r.process == 0){
-    
     r.gripperServo.write(r.startingPos);
     r.backstopServo.write(r.backstopOpen);
+ 
+    
     Serial.println("Set up complete");
     Serial.println("Routing");
     //instructions for planning first route (this may all be moved to setup)
@@ -446,20 +448,39 @@ void loop()
         }
       }
     }
-    /*r.rotate(45);
-    delay(1000);
-    r.rotate(-45);
-    delay(1000);
-    r.rotate(90);
-    delay(1000);
-    r.rotate(-90);
-    delay(1000);*/
-    //r.straightMovement(100);
-    //if(r.process == 1) {
-    //  r.process = 5; //if block not found revert to 5 and re-route
-    //}
+  if(r.coordinate == 1){
+    r.distance = 600; //distance to move forward
+  }
+  else if(r.coordinate == 2 ){
+    r.rotate(80); //rotate 80deg
+    r.distance = 100; //distance to move forward
+  } 
+
+
+  //ENTER ALL COORDINATES TO COMPLETE CIRCUIT
+  //ALL NEW VARIABLES ARE UNDER PUBLIC
+  else if(r.coordinate == 3){
+    r.distance = 0; //END
+  }
+
+  
+  if(r.logDistance <= r.distance and r.coordinate !=3){ //log Distance is updated after r.gripBlock has been called
+    Serial.print("Moved ");
+    Serial.print(r.logDistance);
+    Serial.print(" of ");
+    Serial.print(r.distance);
+    r.straightMovement(r.distance - r.logDistance); //move distance still left to move
+    if(r.process == 1){ //if block not detected we have made the distance
+      r.coordinate +=1; //go onto next coordinate
+      r.logDistance = 0; //reset distance for next coordinate
+    }
+  }
+  else if(r.coordinate !=3){ //!= 3 means we haven't ended yet
+    r.coordinate +=1;
+    r.logDistance = 0; //reset distance for next coordinate
   }
   
+  }
   
   
   
@@ -468,6 +489,7 @@ void loop()
     Serial.println("Moving over block");
     //delay(1000); //comment this out (just for testing)
     r.gripBlock();
+    r.logDistance += r.currentDist; //update distance moved along path until sensor interrupt is called
     delay(1000);
     //OPEN BACKSTOP
     int pos;
@@ -488,12 +510,9 @@ void loop()
     r.blockNo += 1;
     Serial.print(r.blockNo);
     Serial.println(" blocks");
-    if(r.blockNo == 5){ //are there a set number of non magnetic blocks
-      r.process = 6; //go back to shelf
-    }
-    else{
+
       r.process = 1; //if all instructions printed at once else to 5/0 and re-route
-    }
+    
   }
 
   //Magnet detected
@@ -503,11 +522,6 @@ void loop()
     r.process = 1; //if all instructions printed at once else to 5/0 and re-route
   }
 
-  else if(r.process == 5){
-    Serial.println("Re-routing");
-    //instructions to re-route (this may be done under 1)
-    r.process = 1;
-  }
 
   else if(r.process == 6){
     Serial.println("Unloading conveyor");

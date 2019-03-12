@@ -29,7 +29,10 @@ class Robot
     void turn90(int deg);
     Robot (const byte which);
     void begin ();
+    float distance;
     volatile float currentDist;
+    float logDistance;
+    int coordinate;
     
     volatile int process; //detetmines what the robot should be doing, 0 = setup/scanning route,
                           //1 = following route, 2 = positioning above block and gripping, 3 = storing block on conveyor
