@@ -38,7 +38,7 @@ void Robot::begin(){
   {
     case 0:
       attachInterrupt (digitalPinToInterrupt(optoPin), isr0, CHANGE);
-     // attachInterrupt (digitalPinToInterrupt(hallPin), isr1, RISING);
+     //attachInterrupt (digitalPinToInterrupt(hallPin), isr1, RISING);
       attachInterrupt (digitalPinToInterrupt(blockdetecPin), isr2, RISING);
       instance0 = this;
       break;
@@ -210,12 +210,12 @@ void Robot::straightMovement(short distance) {
     //delay(100);
   }
 }
-  
+
 void Robot::rotate(short rotation) {
   Serial.print("Rotate ");
   Serial.println(rotation);
   float conversion2 = 1.745329; //1.745329 mm = 1 deg turned 
-  float distance = conversion2 * rotation + 4*rotation/9;
+  float distance = conversion2 * rotation + 40;
   
   if(process == 1){
     uint8_t i; //used for incrementing speed for acceleration and deceleration
@@ -283,14 +283,14 @@ void Robot::gripBlock(){
     //GETTING ROBOT POSITIONED ABOVE BLOCK 
     uint8_t i; //used for incrementing speed for acceleration and deceleration
 
-    int getBlockSpeed = 80; //need to test this
+    int getBlockSpeed = 100; //need to test this
     leftDriveMotor->run(BACKWARD);
     rightDriveMotor->run(FORWARD);
     Serial.println("Accelerating");
     for (i=0; i<getBlockSpeed; i++) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
-      delay(5); //Need to test this
+      delay(10); //Need to test this
     }
 
     Serial.println("Decelerating"); 
@@ -416,7 +416,6 @@ void loop()
     
     r.gripperServo.write(r.startingPos);
     r.backstopServo.write(r.backstopOpen);
-    r.positionGripperArm();
     Serial.println("Set up complete");
     Serial.println("Routing");
     //instructions for planning first route (this may all be moved to setup)
@@ -482,8 +481,8 @@ void loop()
   //Magnet not detected
   else if(r.process == 3){
     Serial.println("Loading block");
-    //r.loadConveyor();
-    //r.conveyorIncrement();
+    r.loadConveyor();
+    r.conveyorIncrement();
     r.blockNo += 1;
     Serial.print(r.blockNo);
     Serial.println(" blocks");

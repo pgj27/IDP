@@ -39,7 +39,7 @@ class Robot
     bool waitingRot; // Used when waiting for commands
     Servo gripperServo;
     Servo backstopServo;
-    int startingPos = 130; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
+    int startingPos = 120; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
     int gripPos = 70;    //for gripping block
     int backstopClosed = 90; 
     int backstopOpen = 20;
