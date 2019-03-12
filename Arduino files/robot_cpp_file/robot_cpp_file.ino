@@ -283,21 +283,21 @@ void Robot::gripBlock(){
     //GETTING ROBOT POSITIONED ABOVE BLOCK 
     uint8_t i; //used for incrementing speed for acceleration and deceleration
 
-    int getBlockSpeed = 80; //need to test this
+    int getBlockSpeed = 200; //need to test this
     leftDriveMotor->run(BACKWARD);
     rightDriveMotor->run(FORWARD);
     Serial.println("Accelerating");
     for (i=0; i<getBlockSpeed; i++) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
-      delay(5); //Need to test this
+      delay(1); //Need to test this
     }
 
     Serial.println("Decelerating"); 
     for (i=getBlockSpeed; i!=0; i--) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
-      delay(5); //Need to test this
+      delay(1); //Need to test this
     }
     
     Serial.println("Brake");
@@ -482,8 +482,8 @@ void loop()
   //Magnet not detected
   else if(r.process == 3){
     Serial.println("Loading block");
-    //r.loadConveyor();
-    //r.conveyorIncrement();
+    r.loadConveyor();
+    r.conveyorIncrement();
     r.blockNo += 1;
     Serial.print(r.blockNo);
     Serial.println(" blocks");

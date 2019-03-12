@@ -134,7 +134,7 @@ class RobotControl:
             cv2.drawContours(frame, self.conts, -1, (0, 0, 255), 3)
             cv2.circle(frame, self.pos, 10, (0, 255, 0), 3)
             cv2.imshow('frame',frame)
-            cv2.waitKey(0)
+            #cv2.waitKey(0)
 
         return ret, frame
 
@@ -143,13 +143,19 @@ class RobotControl:
         # Collect/scan line of blocks at edge of table
         self.send_command("cf", 2000)  # Far edge
         self.send_command("cr", 80)  # Facing blocks, 80 deg so scrapes wall instead of passing blocks
-        self.send_command("cf", 600)  # Collect 5 blocks
-        self.send_command("cf", 200)
-        self.send_command("cf", 200)
-        self.send_command("cf", 200)
-        self.send_command("cf", 200)
+        self.send_command("cf", 2000)
+        self.send_command("cf", -800)
+        self.send_command("cr", 90)
+        self.send_command("cf", 600)
+        self.send_command("cr", 180)
+        self.send_command("cf", -1400)
+        self.send_command("cu", 0)
+        self.send_command("cr", 90)
+        self.send_command("cf", 800)
+        self.send_command("cr", -90)
+        return
 
-        # Go to far corner so location is known
+        """# Go to far corner so location is known
         self.send_command("cf", 500)
         self.pos = (50, 50)
 
@@ -189,7 +195,7 @@ class RobotControl:
 
         # Return to start position and orientation
         self.go_to_pos(self.start_pos)
-        self.send_command("cr", int((np.pi - self.angle) * 180 / np.pi))
+        self.send_command("cr", int((np.pi - self.angle) * 180 / np.pi))"""
 
 
 #rc = RobotControl("/home/philip/Videos/Webcam/robot-1.webm")
