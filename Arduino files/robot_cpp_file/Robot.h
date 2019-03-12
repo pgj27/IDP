@@ -25,7 +25,7 @@ class Robot
     void straightMovement(short distance);
     void rotate(short distance);
     void gripBlock();
-    void positionGripper();
+    void positionGripperArm();
     void turn90(int deg);
     Robot (const byte which);
     void begin ();
@@ -38,8 +38,11 @@ class Robot
     bool waitingDist;
     bool waitingRot; // Used when waiting for commands
     Servo gripperServo;
-    int startingPos = 110; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
-    int gripPos = 165;    //for gripping block
+    Servo backstopServo;
+    int startingPos = 130; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
+    int gripPos = 70;    //for gripping block
+    int backstopClosed = 90; 
+    int backstopOpen = 20;
     Adafruit_DCMotor *gripperMotor;
     
   private:

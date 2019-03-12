@@ -17,6 +17,7 @@ Robot::Robot(const byte whichISR) : whichISR (whichISR)
   conveyorMotor = AFMS.getMotor(3);
   gripperMotor = AFMS.getMotor(4);
   gripperServo.attach(10); 
+  backstopServo.attach(9);
   Serial.begin(9600);
   AFMS.begin();
   optoPin = 19; //All interrupts pins chosen correctly (2,3,18,19,20,21)
@@ -37,7 +38,7 @@ void Robot::begin(){
   {
     case 0:
       attachInterrupt (digitalPinToInterrupt(optoPin), isr0, CHANGE);
-      //attachInterrupt (digitalPinToInterrupt(hallPin), isr1, RISING);
+     // attachInterrupt (digitalPinToInterrupt(hallPin), isr1, RISING);
       attachInterrupt (digitalPinToInterrupt(blockdetecPin), isr2, RISING);
       instance0 = this;
       break;
@@ -271,6 +272,14 @@ void Robot::rotate(short rotation) {
 
 void Robot::gripBlock(){
 
+    //Close backstop
+    Serial.println("Closing backstop");
+    int pos1;
+    for(pos1 = backstopOpen; pos1 <= backstopClosed; pos1 += 5){ 
+    backstopServo.write(pos1);
+    delay(5);
+  }
+
     //GETTING ROBOT POSITIONED ABOVE BLOCK 
     uint8_t i; //used for incrementing speed for acceleration and deceleration
 
@@ -300,11 +309,11 @@ void Robot::gripBlock(){
   //GRIPPING BLOCK
   int pos;
   Serial.println("Gripping");
-  for(pos = startingPos; pos <= gripPos; pos += 1){ 
+  for(pos = startingPos; pos >= gripPos; pos -= 1){ 
     gripperServo.write(pos);
     delay(5);
   }
-  delay(2000); //this is for stabalising the hall effect and finding a value
+  //delay(2000); //this is for stabalising the hall effect and finding a value
   
 }
 
@@ -335,7 +344,7 @@ void Robot::loadConveyor(){
 
   //RELEASE BLOCK
   int pos;
-  for(pos = gripPos; pos >= startingPos; pos -= 1){ 
+  for(pos = gripPos; pos <= startingPos; pos += 1){ 
     gripperServo.write(pos);
     delay(5);
    }
@@ -363,23 +372,24 @@ void Robot::loadConveyor(){
 void Robot::releaseBlock(){ //BLOCK SHOULD BE ABLE TO PASS UNDER WITHOUT MOVING ARM
   //RELEASE BLOCK
   int pos;
-  for(pos = gripPos; pos >= startingPos; pos -= 1){ 
+  for(pos = gripPos; pos <= startingPos; pos += 1){ 
     gripperServo.write(pos);
     delay(5);
    }
 }
 
-void Robot::positionGripper(){
+
+void Robot::positionGripperArm(){
    //ROTATE GRIPPER ARM
   uint8_t i;
-   
+   Serial.println("putting gripper in 0 position");
   gripperMotor->run(FORWARD);
-  for (i=0; i<30; i+=5) {
+  for (i=0; i<50; i+=1) {
     gripperMotor->setSpeed(i);
-    delay(5); 
+    delay(100); 
   }
 
-  for (i=30; i!=0; i-=5) {
+  for (i=50; i!=0; i-=1) {
     gripperMotor->setSpeed(i);
     delay(5);
   }
@@ -397,14 +407,17 @@ void loop()
   static Robot r(0);
   if (!setup_done) {
     r.begin();
-    r.gripperServo.write(r.startingPos);
-    r.positionGripper();
-    Serial.println("Set up complete");
+ 
     r.process = 0;
     setup_done = true;
   }
 
   if(r.process == 0){
+    
+    r.gripperServo.write(r.startingPos);
+    r.backstopServo.write(r.backstopOpen);
+    r.positionGripperArm();
+    Serial.println("Set up complete");
     Serial.println("Routing");
     //instructions for planning first route (this may all be moved to setup)
     r.process = 1;
@@ -432,8 +445,15 @@ void loop()
         }
       }
     }
+    /*r.rotate(45);
     delay(1000);
-  
+    r.rotate(-45);
+    delay(1000);
+    r.rotate(90);
+    delay(1000);
+    r.rotate(-90);
+    delay(1000);*/
+    //r.straightMovement(100);
     //if(r.process == 1) {
     //  r.process = 5; //if block not found revert to 5 and re-route
     //}
@@ -447,6 +467,13 @@ void loop()
     Serial.println("Moving over block");
     //delay(1000); //comment this out (just for testing)
     r.gripBlock();
+    delay(1000);
+    //OPEN BACKSTOP
+    int pos;
+    for(pos = r.backstopClosed; pos >= r.backstopOpen; pos -= 5){ 
+      r.backstopServo.write(pos);
+    delay(5);
+  }
     if(r.process == 2) {
       r.process = 3; //if magnet not detected go on to process 3
     }
