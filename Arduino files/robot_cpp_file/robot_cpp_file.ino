@@ -209,12 +209,12 @@ void Robot::straightMovement(short distance) {
     //delay(100);
   }
 }
-
+  
 void Robot::rotate(short rotation) {
   Serial.print("Rotate ");
   Serial.println(rotation);
   float conversion2 = 1.745329; //1.745329 mm = 1 deg turned 
-  float distance = conversion2 * rotation + 40;
+  float distance = conversion2 * rotation + 4*rotation/9;
   
   if(process == 1){
     uint8_t i; //used for incrementing speed for acceleration and deceleration
@@ -455,8 +455,8 @@ void loop()
   //Magnet not detected
   else if(r.process == 3){
     Serial.println("Loading block");
-    r.loadConveyor();
-    r.conveyorIncrement();
+    //r.loadConveyor();
+    //r.conveyorIncrement();
     r.blockNo += 1;
     Serial.print(r.blockNo);
     Serial.println(" blocks");
