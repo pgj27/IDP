@@ -20,11 +20,11 @@ Robot::Robot(const byte whichISR) : whichISR (whichISR)
   backstopServo.attach(9);
   Serial.begin(9600);
   AFMS.begin();
-  optoPin = 3; //All interrupts pins chosen correctly (2,3,18,19,20,21)
-  hallPin = 19;
+  optoPin = 19; //All interrupts pins chosen correctly (2,3,18,19,20,21)
+  hallPin = 3;
   blockdetecPin = 2;
   pinMode(optoPin, INPUT_PULLUP);
-  pinMode(hallPin, INPUT_PULLUP);
+  pinMode(hallPin, INPUT);
   pinMode(blockdetecPin, INPUT_PULLUP);
   currentDist = 0;
   logDistance = 0;
@@ -40,7 +40,7 @@ void Robot::begin(){
   {
     case 0:
       attachInterrupt (digitalPinToInterrupt(optoPin), isr0, CHANGE);
-     //attachInterrupt (digitalPinToInterrupt(hallPin), isr1, RISING);
+      //attachInterrupt (digitalPinToInterrupt(hallPin), isr1, RISING);
       attachInterrupt (digitalPinToInterrupt(blockdetecPin), isr2, RISING);
       instance0 = this;
       break;
@@ -179,21 +179,6 @@ void Robot::straightMovement(short distance) {
     while(currentDist <= abs(distance)-brakeDistance and process == 1) {
     Serial.print("Current dist constant movement: ");
     Serial.println(currentDist);
-      short steering = 0;
-      /*while (!Serial.available())
-        delay(0.01);
-      if (Serial.available())
-        steering = this->processCommand(Serial.read(), CMD_STEERING);
-      leftDriveMotor->setSpeed(fullSpeed / 2 + steering / 100);
-      rightDriveMotor->setSpeed(fullSpeed / 2 - steering / 100);
-      Serial.println("Steering command");
-      Serial.println(steering);
-      Serial.print("Left motor speed: ");
-      Serial.print(fullSpeed / 2 + steering / 100);
-      Serial.print(", Right motor speed: ");
-      Serial.println(fullSpeed / 2 - steering / 100);
-      Serial.print("Current dist constant movement: ");
-      Serial.println(currentDist);*/
     }
 
     //Deceleration
@@ -286,7 +271,7 @@ void Robot::gripBlock(){
     uint8_t i; //used for incrementing speed for acceleration and deceleration
 
 
-    int getBlockSpeed = 200; //need to test this
+    int getBlockSpeed = 250; //need to test this
     leftDriveMotor->run(BACKWARD);
     rightDriveMotor->run(FORWARD);
     Serial.println("Accelerating");
@@ -448,23 +433,34 @@ void loop()
         }
       }
     }
-  if(r.coordinate == 1){
-    r.distance = 600; //distance to move forward
-  }
-  else if(r.coordinate == 2 ){
+  if(r.coordinate == 1)
+    r.distance = 2000; //distance to move forward
+  else if(r.coordinate == 2)
     r.rotate(80); //rotate 80deg
-    r.distance = 100; //distance to move forward
-  } 
+  else if(r.coordinate == 3)
+    r.distance = 2000; //distance to move forward
+  else if(r.coordinate == 4)
+    r.distance = -800;
+  else if(r.coordinate == 5)
+    r.rotate(90);
+  else if(r.coordinate == 6)
+    r.distance = 1000; //Move to middle of table
+  else if(r.coordinate == 7)
+    r.rotate(180);
+  else if(r.coordinate == 8)
+    r.distance = -1000; //reverse up to sheld
+  else if(r.coordinate == 9)
+    r.unloadConveyor();
+  else if(r.coordinate == 10)
+    r.rotate(90);
+  else if(r.coordinate == 11)
+    r.distance = 1000; //go to corner (start position)
 
-
-  //ENTER ALL COORDINATES TO COMPLETE CIRCUIT
-  //ALL NEW VARIABLES ARE UNDER PUBLIC
-  else if(r.coordinate == 3){
+  else if(r.coordinate == 5)
     r.distance = 0; //END
-  }
 
   
-  if(r.logDistance <= r.distance and r.coordinate !=3){ //log Distance is updated after r.gripBlock has been called
+  if(r.logDistance <= r.distance and r.coordinate != 5){ //log Distance is updated after r.gripBlock has been called
     Serial.print("Moved ");
     Serial.print(r.logDistance);
     Serial.print(" of ");
@@ -475,7 +471,7 @@ void loop()
       r.logDistance = 0; //reset distance for next coordinate
     }
   }
-  else if(r.coordinate !=3){ //!= 3 means we haven't ended yet
+  else if(r.coordinate !=5){ //!= 3 means we haven't ended yet
     r.coordinate +=1;
     r.logDistance = 0; //reset distance for next coordinate
   }
@@ -520,14 +516,6 @@ void loop()
     Serial.println("Releasing magnetic block");
     r.releaseBlock();
     r.process = 1; //if all instructions printed at once else to 5/0 and re-route
-  }
-
-
-  else if(r.process == 6){
-    Serial.println("Unloading conveyor");
-    //instructions to get back to shelf
-    r.unloadConveyor();
-    r.process =1;
   }
 
 }
