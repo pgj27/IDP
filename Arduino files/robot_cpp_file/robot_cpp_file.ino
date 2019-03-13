@@ -337,6 +337,31 @@ void Robot::loadConveyor(){
     gripperServo.write(pos);
     delay(5);
    }
+
+  //REVERSING ROBOT
+
+    int reverseSpeed = 100; //need to test this
+    leftDriveMotor->run(FORWARD);
+    rightDriveMotor->run(BACKWARD);
+    Serial.println("Accelerating");
+    for (i=0; i<reverseSpeed; i++) {
+      leftDriveMotor->setSpeed(i);
+      rightDriveMotor->setSpeed(i);
+      delay(1); //Need to test this
+
+    }
+
+    Serial.println("Decelerating"); 
+    for (i=reverseSpeed; i!=0; i--) {
+      leftDriveMotor->setSpeed(i);
+      rightDriveMotor->setSpeed(i);
+      delay(1); //Need to test this
+    }
+    
+    Serial.println("Brake");
+    leftDriveMotor->run(RELEASE);
+    rightDriveMotor->run(RELEASE);
+    delay(100);
    
  //ROTATE GRIPPER ARM
  Serial.println("Moving back");
@@ -433,45 +458,68 @@ void loop()
         }
       }
     }
-  if(r.coordinate == 1)
+  if(r.coordinate == 1){
     r.distance = 2000; //distance to move forward
-  else if(r.coordinate == 2)
+  }
+  else if(r.coordinate == 2){
+    r.distance = 0;
     r.rotate(80); //rotate 80deg
-  else if(r.coordinate == 3)
+  }
+  else if(r.coordinate == 3){
     r.distance = 2000; //distance to move forward
-  else if(r.coordinate == 4)
+  }
+  else if(r.coordinate == 4){
     r.distance = -800;
-  else if(r.coordinate == 5)
+  }
+  else if(r.coordinate == 5){
+    r.distance = 0;
     r.rotate(90);
-  else if(r.coordinate == 6)
+  }
+  else if(r.coordinate == 6){
     r.distance = 1000; //Move to middle of table
-  else if(r.coordinate == 7)
+  }
+  else if(r.coordinate == 7){
+    r.distance = 0;
     r.rotate(180);
-  else if(r.coordinate == 8)
+  }
+  else if(r.coordinate == 8){
     r.distance = -1000; //reverse up to sheld
-  else if(r.coordinate == 9)
+  }
+  else if(r.coordinate == 9){
+    r.distance = 0;
     r.unloadConveyor();
-  else if(r.coordinate == 10)
+  }
+  else if(r.coordinate == 10){
+    r.distance = 0;
     r.rotate(90);
-  else if(r.coordinate == 11)
+  }
+  else if(r.coordinate == 11){
     r.distance = 1000; //go to corner (start position)
+  }
 
-  else if(r.coordinate == 5)
+  else if(r.coordinate == 12){
     r.distance = 0; //END
+  }
 
   
-  if(r.logDistance <= r.distance and r.coordinate != 5){ //log Distance is updated after r.gripBlock has been called
+  if(r.logDistance <= abs(r.distance) and r.coordinate != 12){ //log Distance is updated after r.gripBlock has been called
     Serial.print("Moved ");
     Serial.print(r.logDistance);
     Serial.print(" of ");
     Serial.print(r.distance);
-    r.straightMovement(r.distance - r.logDistance); //move distance still left to move
+    if(r.distance > 0){
+      r.straightMovement(r.distance - r.logDistance); //move distance still left to move
+    }
+    else {
+      r.straightMovement(r.distance + r.logDistance); //move distance still left to move
+    }
+    
     if(r.process == 1){ //if block not detected we have made the distance
       r.coordinate +=1; //go onto next coordinate
       r.logDistance = 0; //reset distance for next coordinate
     }
   }
-  else if(r.coordinate !=5){ //!= 3 means we haven't ended yet
+  else if(r.coordinate !=12){ //!= 3 means we haven't ended yet
     r.coordinate +=1;
     r.logDistance = 0; //reset distance for next coordinate
   }
