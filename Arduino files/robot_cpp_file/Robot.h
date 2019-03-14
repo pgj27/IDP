@@ -43,7 +43,7 @@ class Robot
     Servo gripperServo;
     Servo backstopServo;
     int startingPos = 120; //for gripping block (NEED ROUGHLY 90DEG DIFFERENCE)
-    int gripPos = 70;    //for gripping block
+    int gripPos = 65;    //for gripping block
     int backstopClosed = 90; 
     int backstopOpen = 20;
     Adafruit_DCMotor *gripperMotor;

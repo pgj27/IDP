@@ -71,7 +71,8 @@ void Robot::distanceCalculator(){
 }
 
 void Robot::magnetDetection(){
-  process = 4;
+  if(process == 2)
+    process = 4;
 }
 
 void Robot::blockDetection(){
@@ -96,7 +97,7 @@ short Robot::processCommand(char byte_in)
 void Robot::conveyorIncrement()
 {  
   uint8_t i;
-  int incrementSpeed = 180;
+  int incrementSpeed = 200;
 
   conveyorMotor->run(BACKWARD);
   for (i=0; i<incrementSpeed; i++) {
@@ -114,8 +115,8 @@ void Robot::conveyorIncrement()
 void Robot::unloadConveyor()
 {
   uint8_t i;
-  int unloadSpeed = 255;
-  int unloadTime = 50;
+  int unloadSpeed = 200;
+  int unloadTime = 150;
 
   //Accelerate
   conveyorMotor->run(FORWARD);
@@ -202,7 +203,7 @@ void Robot::rotate(short rotation) {
   Serial.print("Rotate ");
   Serial.println(rotation);
   float conversion2 = 1.745329; //1.745329 mm = 1 deg turned 
-  float distance = conversion2 * rotation + 40;
+  float distance = abs(conversion2 * rotation) + 40;
   
   if(process == 1){
     uint8_t i; //used for incrementing speed for acceleration and deceleration
@@ -211,11 +212,11 @@ void Robot::rotate(short rotation) {
     float brakeDistance = 5; //For stopping on path and preparing to break
   
     //if x is negative then we are moving backwards, if x positive -> forward
-    if(distance < 0){
+    if(rotation < 0){
       leftDriveMotor->run(FORWARD);
       rightDriveMotor->run(FORWARD);
     }
-    else if(distance > 0){
+    else if(rotation > 0){
        leftDriveMotor->run(BACKWARD);
        rightDriveMotor->run(BACKWARD);
     }
@@ -271,14 +272,14 @@ void Robot::gripBlock(){
     uint8_t i; //used for incrementing speed for acceleration and deceleration
 
 
-    int getBlockSpeed = 250; //need to test this
+    int getBlockSpeed = 200; //need to test this
     leftDriveMotor->run(BACKWARD);
     rightDriveMotor->run(FORWARD);
     Serial.println("Accelerating");
     for (i=0; i<getBlockSpeed; i++) {
       leftDriveMotor->setSpeed(i);
       rightDriveMotor->setSpeed(i);
-      delay(1); //Need to test this
+      delay(5); //Need to test this
 
     }
 
@@ -373,7 +374,7 @@ void Robot::loadConveyor(){
   
   for (i=0; i<rotateTime; i++) {
     gripperMotor->setSpeed(rotateSpeed);
-    delay(100);
+    delay(80);
   }
 
   for (i=rotateSpeed; i!=0; i-=5) {
@@ -462,47 +463,60 @@ void loop()
     r.distance = 2000; //distance to move forward
   }
   else if(r.coordinate == 2){
-    r.distance = 0;
-    r.rotate(80); //rotate 80deg
+    r.distance = -30;
   }
   else if(r.coordinate == 3){
-    r.distance = 2000; //distance to move forward
+    r.distance = 0;
+    r.rotate(50); //rotate 80deg
   }
   else if(r.coordinate == 4){
-    r.distance = -800;
+    r.distance = 2700; //distance to move forward
   }
   else if(r.coordinate == 5){
     r.distance = 0;
-    r.rotate(90);
+    r.rotate(-10);
   }
   else if(r.coordinate == 6){
-    r.distance = 1000; //Move to middle of table
+    r.distance = -900;
   }
   else if(r.coordinate == 7){
     r.distance = 0;
-    r.rotate(180);
+    r.rotate(90);
   }
   else if(r.coordinate == 8){
-    r.distance = -1000; //reverse up to sheld
+    r.distance = 1200; //Move to middle of table
   }
   else if(r.coordinate == 9){
     r.distance = 0;
-    r.unloadConveyor();
+    r.rotate(200);
   }
   else if(r.coordinate == 10){
-    r.distance = 0;
-    r.rotate(90);
+    r.distance = -1200; //reverse up to shelf
   }
   else if(r.coordinate == 11){
+    r.distance = 0;
+    r.unloadConveyor();
+  }
+  else if(r.coordinate == 12){
+    r.distance = 100;
+  }
+  else if(r.coordinate == 13){
+    r.distance = 0;
+    r.rotate(100);
+  }
+  else if(r.coordinate == 14){
     r.distance = 1000; //go to corner (start position)
   }
+  else if(r.coordinate == 15){
+    r.distance = -100; //go to corner (start position)
+  }
 
-  else if(r.coordinate == 12){
+  else if(r.coordinate == 16){
     r.distance = 0; //END
   }
 
   
-  if(r.logDistance <= abs(r.distance) and r.coordinate != 12){ //log Distance is updated after r.gripBlock has been called
+  if(r.logDistance <= abs(r.distance) and r.coordinate != 16){ //log Distance is updated after r.gripBlock has been called
     Serial.print("Moved ");
     Serial.print(r.logDistance);
     Serial.print(" of ");
@@ -519,7 +533,7 @@ void loop()
       r.logDistance = 0; //reset distance for next coordinate
     }
   }
-  else if(r.coordinate !=12){ //!= 3 means we haven't ended yet
+  else if(r.coordinate !=16){ //!= 3 means we haven't ended yet
     r.coordinate +=1;
     r.logDistance = 0; //reset distance for next coordinate
   }
@@ -534,6 +548,7 @@ void loop()
     //delay(1000); //comment this out (just for testing)
     r.gripBlock();
     r.logDistance += r.currentDist; //update distance moved along path until sensor interrupt is called
+    
     delay(1000);
     //OPEN BACKSTOP
     int pos;
